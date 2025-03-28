@@ -1,0 +1,58 @@
+[
+  {
+    "name": "AIDS",
+    "base_price": 165.0,
+    "ingredients": [
+      {
+        "name": "Addy",
+        "quantity": 1.0,
+        "unit_price": 9.0
+      },
+      {
+        "name": "Horse Semen",
+        "quantity": 1.0,
+        "unit_price": 9.0
+      },
+      {
+        "name": "Energy Drink",
+        "quantity": 1.0,
+        "unit_price": 6.0
+      },
+      {
+        "name": "Motor Oil",
+        "quantity": 1.0,
+        "unit_price": 6.0
+      }
+    ],
+    "effects": [],
+    "notes": ""
+  },
+  {
+    "name": "OG Cheese",
+    "base_price": 160.0,
+    "ingredients": [
+      {
+        "name": "Gasoline",
+        "quantity": 1.0,
+        "unit_price": 5.0
+      },
+      {
+        "name": "Chilli",
+        "quantity": 1.0,
+        "unit_price": 7.0
+      },
+      {
+        "name": "Paracetamol",
+        "quantity": 1.0,
+        "unit_price": 3.0
+      },
+      {
+        "name": "Chilli",
+        "quantity": 1.0,
+        "unit_price": 7.0
+      }
+    ],
+    "effects": [],
+    "notes": ""
+  }
+]
