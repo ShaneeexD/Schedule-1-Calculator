@@ -4,17 +4,17 @@
 - [x] Create project structure
 - [x] Create README.md
 - [x] Create NOTES.md
-- [ ] Set up requirements.txt
-- [ ] Create basic GUI layout
-- [ ] Implement "Add Drug" functionality
-- [ ] Create ingredient management system
-- [ ] Implement cost calculation logic
+- [x] Set up requirements.txt
+- [x] Create basic GUI layout
+- [x] Implement "Add Drug" functionality
+- [x] Create ingredient management system
+- [x] Implement cost calculation logic
 
 ## Medium Priority
-- [ ] Add save/load functionality
-- [ ] Implement data persistence (JSON)
-- [ ] Add editing capabilities for existing drugs
-- [ ] Create a table view for all drugs
+- [x] Add save/load functionality
+- [x] Implement data persistence (JSON)
+- [x] Add editing capabilities for existing drugs
+- [x] Create a table view for all drugs
 
 ## Low Priority
 - [ ] Add effects tracking
