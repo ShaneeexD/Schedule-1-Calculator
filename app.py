@@ -1116,51 +1116,71 @@ class MainWindow(QMainWindow):
     
     def open_database(self):
         """Open a database file"""
-        filename, _ = QFileDialog.getOpenFileName(
+        file_path, _ = QFileDialog.getOpenFileName(
             self, "Open Database", "", "JSON Files (*.json);;All Files (*)"
         )
         
-        if filename:
+        if file_path:
             try:
-                # Create drug database file path
-                drug_db_file = f"{os.path.splitext(filename)[0]}_drugs.json"
-                ing_db_file = f"{os.path.splitext(filename)[0]}_ingredients.json"
-                effect_db_file = f"{os.path.splitext(filename)[0]}_effects.json"
+                # Determine base path and filenames
+                base_path = os.path.dirname(file_path)
+                base_name = os.path.splitext(os.path.basename(file_path))[0]
                 
+                # If the selected file ends with _drugs, _ingredients, or _effects,
+                # strip that suffix to get the base name
+                for suffix in ['_drugs', '_ingredients', '_effects']:
+                    if base_name.endswith(suffix):
+                        base_name = base_name[:-len(suffix)]
+                        break
+                
+                # Construct filenames
+                drugs_file = os.path.join(base_path, f"{base_name}_drugs.json")
+                ingredients_file = os.path.join(base_path, f"{base_name}_ingredients.json")
+                effects_file = os.path.join(base_path, f"{base_name}_effects.json")
+                
+                # Create new databases
                 self.drug_database = DrugDatabase()
                 self.ingredient_database = IngredientDatabase()
                 self.effect_database = EffectDatabase()
                 
-                # Try to load both files
-                if os.path.exists(drug_db_file):
-                    self.drug_database.load_from_file(drug_db_file)
+                # Load data
+                if os.path.exists(ingredients_file):
+                    self.ingredient_database.load_from_file(ingredients_file)
+                    self.statusBar().showMessage(f"Loaded ingredients from {ingredients_file}")
                 
-                if os.path.exists(ing_db_file):
-                    self.ingredient_database.load_from_file(ing_db_file)
+                if os.path.exists(effects_file):
+                    self.effect_database.load_from_file(effects_file)
+                    self.statusBar().showMessage(f"Loaded effects from {effects_file}")
                 
-                if os.path.exists(effect_db_file):
-                    self.effect_database.load_from_file(effect_db_file)
+                if os.path.exists(drugs_file):
+                    self.drug_database.load_from_file(drugs_file)
+                    self.statusBar().showMessage(f"Loaded drugs from {drugs_file}")
+                    self.current_file = base_name
                 
-                self.current_file = filename
+                # Update UI
                 self.update_tables()
-                self.statusBar().showMessage(f"Opened database: {filename}")
+                self.statusBar().showMessage(f"Opened database: {base_name}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to open database: {str(e)}")
-    
+
     def save_database(self):
         """Save the database to the current file or prompt for a new file"""
         if self.current_file:
             try:
-                # Create drug database file path
-                drug_db_file = f"{os.path.splitext(self.current_file)[0]}_drugs.json"
-                ing_db_file = f"{os.path.splitext(self.current_file)[0]}_ingredients.json"
-                effect_db_file = f"{os.path.splitext(self.current_file)[0]}_effects.json"
+                # Construct filenames
+                base_path = os.path.dirname(self.current_file) if os.path.dirname(self.current_file) else ""
+                base_name = os.path.basename(self.current_file)
                 
-                self.drug_database.save_to_file(drug_db_file)
-                self.ingredient_database.save_to_file(ing_db_file)
-                self.effect_database.save_to_file(effect_db_file)
+                drugs_file = os.path.join(base_path, f"{base_name}_drugs.json")
+                ingredients_file = os.path.join(base_path, f"{base_name}_ingredients.json")
+                effects_file = os.path.join(base_path, f"{base_name}_effects.json")
                 
-                self.statusBar().showMessage(f"Saved database to: {self.current_file}")
+                # Save data
+                self.drug_database.save_to_file(drugs_file)
+                self.ingredient_database.save_to_file(ingredients_file)
+                self.effect_database.save_to_file(effects_file)
+                
+                self.statusBar().showMessage(f"Saved database: {base_name}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save database: {str(e)}")
         else:
@@ -1168,23 +1188,34 @@ class MainWindow(QMainWindow):
     
     def save_database_as(self):
         """Save the database to a new file"""
-        filename, _ = QFileDialog.getSaveFileName(
+        file_path, _ = QFileDialog.getSaveFileName(
             self, "Save Database As", "", "JSON Files (*.json);;All Files (*)"
         )
         
-        if filename:
+        if file_path:
             try:
-                # Create drug database file path
-                drug_db_file = f"{os.path.splitext(filename)[0]}_drugs.json"
-                ing_db_file = f"{os.path.splitext(filename)[0]}_ingredients.json"
-                effect_db_file = f"{os.path.splitext(filename)[0]}_effects.json"
+                # Get base name without extension
+                base_path = os.path.dirname(file_path)
+                base_name = os.path.splitext(os.path.basename(file_path))[0]
                 
-                self.drug_database.save_to_file(drug_db_file)
-                self.ingredient_database.save_to_file(ing_db_file)
-                self.effect_database.save_to_file(effect_db_file)
+                # Remove any existing suffixes
+                for suffix in ['_drugs', '_ingredients', '_effects']:
+                    if base_name.endswith(suffix):
+                        base_name = base_name[:-len(suffix)]
+                        break
                 
-                self.current_file = filename
-                self.statusBar().showMessage(f"Saved database to: {filename}")
+                # Construct filenames
+                drugs_file = os.path.join(base_path, f"{base_name}_drugs.json")
+                ingredients_file = os.path.join(base_path, f"{base_name}_ingredients.json")
+                effects_file = os.path.join(base_path, f"{base_name}_effects.json")
+                
+                # Save data
+                self.drug_database.save_to_file(drugs_file)
+                self.ingredient_database.save_to_file(ingredients_file)
+                self.effect_database.save_to_file(effects_file)
+                
+                self.current_file = base_name
+                self.statusBar().showMessage(f"Saved database as: {base_name}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save database: {str(e)}")
 

@@ -62,7 +62,22 @@ class Drug:
         """Create a Drug instance from a dictionary"""
         ingredients = [Ingredient(**ing) for ing in data.pop('ingredients', [])]
         effects_data = data.pop('effects', [])
-        effects = [Effect(**effect) for effect in effects_data] if effects_data else []
+        effects = []
+        
+        # Handle effects with backward compatibility
+        for effect_data in effects_data:
+            # Convert old format (with potency) to new format (with color)
+            if 'potency' in effect_data and 'color' not in effect_data:
+                # Use a default color based on potency value (1-10)
+                potency = effect_data.pop('potency', 5)
+                # Generate a color from blue (potency 1) to red (potency 10)
+                # This creates a gradient of colors based on the old potency value
+                intensity = min(255, int((potency / 10) * 255))
+                color = f"#{255-intensity:02x}{0:02x}{intensity:02x}"
+                effect_data['color'] = color
+            
+            effects.append(Effect(**effect_data))
+            
         return cls(ingredients=ingredients, effects=effects, **data)
 
 
@@ -104,7 +119,18 @@ class EffectDatabase:
         try:
             with open(filename, 'r') as f:
                 data = json.load(f)
-                self.effects = [Effect(**effect_data) for effect_data in data]
+                self.effects = []
+                for effect_data in data:
+                    # Convert old format (with potency) to new format (with color)
+                    if 'potency' in effect_data and 'color' not in effect_data:
+                        # Use a default color based on potency value (1-10)
+                        potency = effect_data.pop('potency', 5)
+                        # Generate a color from blue (potency 1) to red (potency 10)
+                        intensity = min(255, int((potency / 10) * 255))
+                        color = f"#{255-intensity:02x}{0:02x}{intensity:02x}"
+                        effect_data['color'] = color
+                    
+                    self.effects.append(Effect(**effect_data))
         except (FileNotFoundError, json.JSONDecodeError):
             self.effects = []
 

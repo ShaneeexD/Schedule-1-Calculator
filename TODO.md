@@ -12,6 +12,7 @@
 - [x] Add effects tracking system
 - [x] Remove potency from effects
 - [x] Add color picker for effects
+- [x] Fix database loading/saving for backward compatibility
 
 ## Medium Priority
 - [x] Add save/load functionality
@@ -20,6 +21,7 @@
 - [x] Create a table view for all drugs
 - [x] Add ingredient database with dropdown selection
 - [x] Add effects database with dropdown selection
+- [x] Display effect names in their selected colors
 
 ## Low Priority
 - [ ] Implement favorites system
