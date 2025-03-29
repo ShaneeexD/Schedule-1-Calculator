@@ -38,3 +38,45 @@ Ingredient:
 5. Implement cost calculation logic
 6. Add save/load functionality
 7. Enhance with additional features (effects, favorites) if time permits
+
+## Project Structure
+- `app.py`: Main application file with GUI components
+- `models.py`: Data models for drugs, ingredients, and effects
+- `requirements.txt`: Dependencies
+
+## Features Implemented
+1. **Drug Management**
+   - Add, edit, and delete drugs
+   - View drug details including ingredients and effects
+   - Calculate costs and profit margins
+
+2. **Ingredient Management**
+   - Add, edit, and delete ingredients
+   - Track ingredient costs
+   - Select ingredients from dropdown when adding to drugs
+
+3. **Effect Management**
+   - Add, edit, and delete effects
+   - Assign custom colors to effects
+   - Select effects from dropdown when adding to drugs
+   - Color picker for visual identification of effects
+
+4. **Data Persistence**
+   - Save/load functionality for drugs, ingredients, and effects
+   - JSON file format for data storage
+
+## Recent Changes
+- Removed potency attribute from effects as it's not part of the game
+- Added color picker for effects to allow visual customization
+- Updated UI to display effect colors in tables and details views
+
+## Technical Notes
+- Using PyQt5 for the GUI
+- Data is stored in separate JSON files for drugs, ingredients, and effects
+- Color values are stored as hex strings (e.g., "#FF0000" for red)
+
+## Future Improvements
+- Color-coded visualization for effects in drug details view
+- Sorting and filtering options
+- Export functionality for reports
+- Batch processing for multiple drugs

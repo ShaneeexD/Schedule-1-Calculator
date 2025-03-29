@@ -20,12 +20,20 @@ class Ingredient:
 
 
 @dataclass
+class Effect:
+    """Represents an effect that a drug can have"""
+    name: str
+    description: str = ""
+    color: str = "#FFFFFF"  # Default color is white
+
+
+@dataclass
 class Drug:
     """Represents a drug with its recipe and pricing information"""
     name: str
     base_price: float
     ingredients: List[Ingredient]
-    effects: List[str] = None
+    effects: List[Effect] = None
     notes: str = ""
 
     def __post_init__(self):
@@ -53,7 +61,52 @@ class Drug:
     def from_dict(cls, data: Dict) -> 'Drug':
         """Create a Drug instance from a dictionary"""
         ingredients = [Ingredient(**ing) for ing in data.pop('ingredients', [])]
-        return cls(ingredients=ingredients, **data)
+        effects_data = data.pop('effects', [])
+        effects = [Effect(**effect) for effect in effects_data] if effects_data else []
+        return cls(ingredients=ingredients, effects=effects, **data)
+
+
+class EffectDatabase:
+    """Manages a collection of effects"""
+    def __init__(self):
+        self.effects: List[Effect] = []
+
+    def add_effect(self, effect: Effect) -> None:
+        """Add an effect to the database"""
+        self.effects.append(effect)
+
+    def remove_effect(self, effect_name: str) -> bool:
+        """Remove an effect from the database by name"""
+        for i, effect in enumerate(self.effects):
+            if effect.name == effect_name:
+                self.effects.pop(i)
+                return True
+        return False
+
+    def get_effect(self, effect_name: str) -> Optional[Effect]:
+        """Get an effect by name"""
+        for effect in self.effects:
+            if effect.name == effect_name:
+                return effect
+        return None
+    
+    def get_effect_names(self) -> List[str]:
+        """Get a list of all effect names"""
+        return [effect.name for effect in self.effects]
+
+    def save_to_file(self, filename: str) -> None:
+        """Save the database to a JSON file"""
+        with open(filename, 'w') as f:
+            json.dump([asdict(effect) for effect in self.effects], f, indent=2)
+
+    def load_from_file(self, filename: str) -> None:
+        """Load the database from a JSON file"""
+        try:
+            with open(filename, 'r') as f:
+                data = json.load(f)
+                self.effects = [Effect(**effect_data) for effect_data in data]
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.effects = []
 
 
 class IngredientDatabase:
