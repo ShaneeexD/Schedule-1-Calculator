@@ -123,5 +123,15 @@
     "name": "Refreshing",
     "description": "",
     "color": "#22aa61"
+  },
+  {
+    "name": "Energizing",
+    "description": "",
+    "color": "#00aa00"
+  },
+  {
+    "name": "Paranoia",
+    "description": "",
+    "color": "#ff4800"
   }
 ]
