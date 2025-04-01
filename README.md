@@ -6,7 +6,7 @@ A tool for the game "Schedule 1" that helps players manage drug recipes, calcula
 
 - Add drugs to a database with custom names
 - Specify ingredients and their quantities for each drug
-- Track effects and their potency for each drug
+- Track effects for each drug
 - Calculate base cost of drugs based on ingredient prices
 - Track selling prices and potential profits
 - Simple and intuitive user interface
