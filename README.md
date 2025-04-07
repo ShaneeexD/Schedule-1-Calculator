@@ -18,7 +18,7 @@ A tool for the game "Schedule 1" that helps players manage drug recipes, calcula
 2. First, add ingredients and effects in their respective tabs
 3. Use the "Add Drug" button to create a new drug entry
 4. Specify ingredients and their quantities from the dropdown
-5. Add effects with potency levels from the dropdown
+5. Add effects from the dropdown
 6. View calculated costs based on ingredient prices
 7. Save and load your drug database
 
