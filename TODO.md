@@ -1,6 +1,6 @@
 # TODO List
 
-## High Priority
+## Completed Features
 - [x] Create project structure
 - [x] Create README.md
 - [x] Create NOTES.md
@@ -13,8 +13,6 @@
 - [x] Remove potency from effects
 - [x] Add color picker for effects
 - [x] Fix database loading/saving for backward compatibility
-
-## Medium Priority
 - [x] Add save/load functionality
 - [x] Implement data persistence (JSON)
 - [x] Add editing capabilities for existing drugs
@@ -22,15 +20,26 @@
 - [x] Add ingredient database with dropdown selection
 - [x] Add effects database with dropdown selection
 - [x] Display effect names in their selected colors
+- [x] Implement online database functionality
+- [x] Add user authentication system
+- [x] Create drug submission system
+- [x] Add drug rating/upvote system
+- [x] Implement user profile and submissions management
+- [x] Create standalone executable for distribution
 
-## Low Priority
+## Future Enhancements
 - [ ] Implement favorites system
-- [ ] Add sorting and filtering options
+- [ ] Add filtering options
+- [ ] Add sorting for numeric columns (not working currently)
 - [ ] Create data visualization for profit margins
 - [ ] Add export functionality (CSV/Excel)
 - [ ] Add batch processing for multiple drugs
 - [ ] Implement recipe optimization suggestions
 - [ ] Add color-coded effect visualization in drug details
+- [ ] Add user comments on online drug submissions
+- [ ] Implement search functionality for online database
+- [ ] Add notifications for new highly-rated drugs
+- [ ] Create a trending section for popular recipes
 
 ## Bugs & Issues
-- None yet
+- None currently
