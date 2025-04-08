@@ -6,14 +6,18 @@ import os
 import json
 from typing import List, Dict, Optional
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                           QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
-                           QSpinBox, QDoubleSpinBox, QFormLayout, QDialog, QMessageBox,
-                           QTabWidget, QFileDialog, QHeaderView, QComboBox, QTextEdit,
-                           QColorDialog, QSlider)
-from PyQt5.QtCore import Qt, QSize
+                             QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
+                             QSpinBox, QDoubleSpinBox, QFormLayout, QDialog, QMessageBox,
+                             QTabWidget, QFileDialog, QHeaderView, QComboBox, QTextEdit,
+                             QColorDialog, QSlider, QStyledItemDelegate)
+from PyQt5.QtCore import Qt, QSize, QSortFilterProxyModel
 from PyQt5.QtGui import QFont, QIcon, QColor
 
 from models import Drug, Ingredient, DrugDatabase, IngredientDatabase, Effect, EffectDatabase
+from firebase_utils import firebase_manager
+from auth_dialogs import SignInDialog, SignUpDialog
+from online_db_dialogs import SubmitDrugDialog, ViewOnlineDrugsDialog
+from username_dialog import SetUsernameDialog
 
 
 class IngredientDialog(QDialog):
@@ -440,6 +444,13 @@ class AddDrugDialog(QDialog):
             self.name_input.setText(drug.name)
         form_layout.addRow("Drug Name:", self.name_input)
         
+        # Drug type
+        self.type_combo = QComboBox()
+        self.type_combo.addItems(["Weed", "Meth", "Cocaine"])
+        if drug:
+            self.type_combo.setCurrentText(drug.drug_type)
+        form_layout.addRow("Drug Type:", self.type_combo)
+        
         # Base price
         self.price_input = QDoubleSpinBox()
         self.price_input.setRange(0.01, 100000)
@@ -679,13 +690,22 @@ class AddDrugDialog(QDialog):
     
     def get_drug(self) -> Drug:
         """Return a Drug object with the values from the dialog"""
+        name = self.name_input.text()
+        base_price = self.price_input.value()
+        notes = self.notes_input.toPlainText()
+        drug_type = self.type_combo.currentText()
+        
         return Drug(
-            name=self.name_input.text(),
-            base_price=self.price_input.value(),
-            ingredients=self.ingredients,
-            effects=self.effects,
-            notes=self.notes_input.toPlainText()
+            name=name,
+            base_price=base_price,
+            ingredients=self.ingredients.copy(),
+            effects=self.effects.copy(),
+            notes=notes,
+            drug_type=drug_type
         )
+
+
+# Remove unused proxy model
 
 
 class MainWindow(QMainWindow):
@@ -715,9 +735,13 @@ class MainWindow(QMainWindow):
         drugs_layout = QVBoxLayout(drugs_tab)
         
         # Drugs table
-        self.drugs_table = QTableWidget(0, 5)
-        self.drugs_table.setHorizontalHeaderLabels(["Name", "Base Price", "Ingredient Cost", "Profit", "Profit Margin"])
+        self.drugs_table = QTableWidget(0, 6)
+        self.drugs_table.setHorizontalHeaderLabels(["Name", "Type", "Base Price", "Ingredient Cost", "Profit", "Profit Margin"])
         self.drugs_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        
+        # Enable sorting
+        self.drugs_table.setSortingEnabled(True)
+            
         drugs_layout.addWidget(self.drugs_table)
         
         # Buttons
@@ -810,16 +834,72 @@ class MainWindow(QMainWindow):
         ingredients_layout.addLayout(file_buttons_layout)
         effects_layout.addLayout(file_buttons_layout)
         
+        # Online Database tab
+        online_db_tab = QWidget()
+        online_db_layout = QVBoxLayout(online_db_tab)
+        
+        # Authentication status
+        auth_layout = QHBoxLayout()
+        self.auth_status_label = QLabel("Not signed in")
+        self.sign_in_button = QPushButton("Sign In")
+        self.sign_up_button = QPushButton("Sign Up")
+        self.username_button = QPushButton("Set Username")
+        
+        self.sign_in_button.clicked.connect(self.handle_sign_in)
+        self.sign_up_button.clicked.connect(self.handle_sign_up)
+        self.username_button.clicked.connect(self.handle_set_username)
+        self.username_button.setEnabled(False)  # Disabled until signed in
+        
+        auth_layout.addWidget(self.auth_status_label)
+        auth_layout.addStretch()
+        auth_layout.addWidget(self.sign_in_button)
+        auth_layout.addWidget(self.sign_up_button)
+        auth_layout.addWidget(self.username_button)
+        online_db_layout.addLayout(auth_layout)
+        
+        # Online drugs table
+        self.online_drugs_table = QTableWidget(0, 6)
+        self.online_drugs_table.setHorizontalHeaderLabels(["Name", "Type", "Base Price", "Submitted By", "Date", "Rating"])
+        self.online_drugs_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        
+        # Enable sorting
+        self.online_drugs_table.setSortingEnabled(True)
+            
+        online_db_layout.addWidget(self.online_drugs_table)
+        
+        # Online database buttons
+        online_buttons_layout = QHBoxLayout()
+        self.refresh_button = QPushButton("Refresh")
+        self.view_online_button = QPushButton("View Details")
+        self.import_button = QPushButton("Import Drug")
+        self.my_submissions_button = QPushButton("My Submissions")
+        
+        self.refresh_button.clicked.connect(self.refresh_online_drugs)
+        self.view_online_button.clicked.connect(self.view_online_drug_details)
+        self.import_button.clicked.connect(self.import_online_drug)
+        self.my_submissions_button.clicked.connect(self.view_my_submissions)
+        
+        online_buttons_layout.addWidget(self.refresh_button)
+        online_buttons_layout.addWidget(self.view_online_button)
+        online_buttons_layout.addWidget(self.import_button)
+        online_buttons_layout.addWidget(self.my_submissions_button)
+        online_db_layout.addLayout(online_buttons_layout)
+        
+        # Add file buttons to online tab too
+        online_db_layout.addLayout(file_buttons_layout)
+        
         # Add tabs
         self.tabs.addTab(drugs_tab, "Drugs")
         self.tabs.addTab(ingredients_tab, "Ingredients")
         self.tabs.addTab(effects_tab, "Effects")
+        self.tabs.addTab(online_db_tab, "Online Database")
         
         # Status bar
         self.statusBar().showMessage("Ready")
         
         # Initialize UI
         self.update_tables()
+        self.update_auth_status()
     
     def add_drug(self):
         """Open dialog to add a new drug"""
@@ -834,10 +914,24 @@ class MainWindow(QMainWindow):
         """Edit the selected drug"""
         selected_row = self.drugs_table.currentRow()
         if selected_row >= 0:
-            drug = self.drug_database.drugs[selected_row]
+            # Get the drug name from the selected row
+            drug_name = self.drugs_table.item(selected_row, 0).text()
+            
+            # Find the drug in the database by name
+            drug_index = -1
+            for i, d in enumerate(self.drug_database.drugs):
+                if d.name == drug_name:
+                    drug_index = i
+                    drug = d
+                    break
+                    
+            if drug_index == -1:
+                QMessageBox.warning(self, "Error", "Could not find the selected drug.")
+                return
+                
             dialog = AddDrugDialog(self, drug, self.ingredient_database, self.effect_database)
             if dialog.exec_():
-                self.drug_database.drugs[selected_row] = dialog.get_drug()
+                self.drug_database.drugs[drug_index] = dialog.get_drug()
                 self.update_tables()
                 self.statusBar().showMessage(f"Updated drug: {drug.name}")
     
@@ -845,14 +939,28 @@ class MainWindow(QMainWindow):
         """Delete the selected drug"""
         selected_row = self.drugs_table.currentRow()
         if selected_row >= 0:
-            drug = self.drug_database.drugs[selected_row]
+            # Get the drug name from the selected row
+            drug_name = self.drugs_table.item(selected_row, 0).text()
+            
+            # Find the drug in the database by name
+            drug_index = -1
+            for i, d in enumerate(self.drug_database.drugs):
+                if d.name == drug_name:
+                    drug_index = i
+                    drug = d
+                    break
+                    
+            if drug_index == -1:
+                QMessageBox.warning(self, "Error", "Could not find the selected drug.")
+                return
+                
             confirm = QMessageBox.question(
                 self, "Confirm Delete",
                 f"Are you sure you want to delete {drug.name}?",
                 QMessageBox.Yes | QMessageBox.No
             )
             if confirm == QMessageBox.Yes:
-                self.drug_database.drugs.pop(selected_row)
+                self.drug_database.drugs.pop(drug_index)
                 self.update_tables()
                 self.statusBar().showMessage(f"Deleted drug: {drug.name}")
     
@@ -962,87 +1070,268 @@ class MainWindow(QMainWindow):
     
     def view_drug_details(self):
         """View details of the selected drug"""
-        selected_rows = self.drugs_table.selectedIndexes()
-        if not selected_rows:
-            QMessageBox.warning(self, "No Selection", "Please select a drug to view.")
-            return
-        
-        row = selected_rows[0].row()
-        drug_name = self.drugs_table.item(row, 0).text()
-        drug = self.drug_database.get_drug(drug_name)
-        
-        if not drug:
-            QMessageBox.warning(self, "Error", f"Could not find drug: {drug_name}")
-            return
-        
-        # Create dialog
-        dialog = QDialog(self)
-        dialog.setWindowTitle(f"Drug Details: {drug.name}")
-        dialog.setMinimumWidth(600)
-        
-        # Layout
-        layout = QVBoxLayout(dialog)
-        
-        # Basic info
-        info_layout = QFormLayout()
-        info_layout.addRow("Name:", QLabel(drug.name))
-        info_layout.addRow("Base Price:", QLabel(f"${drug.base_price:.2f}"))
-        info_layout.addRow("Ingredient Cost:", QLabel(f"${drug.ingredient_cost:.2f}"))
-        info_layout.addRow("Profit:", QLabel(f"${drug.base_price - drug.ingredient_cost:.2f}"))
-        info_layout.addRow("Profit Margin:", QLabel(f"{drug.profit_margin:.1f}%"))
-        
-        if drug.notes:
-            notes_label = QLabel(drug.notes)
-            notes_label.setWordWrap(True)
-            info_layout.addRow("Notes:", notes_label)
-        
-        layout.addLayout(info_layout)
-        
-        # Ingredients
-        if drug.ingredients:
-            ingredients_label = QLabel("Ingredients:")
-            ingredients_label.setFont(QFont("Arial", 12, QFont.Bold))
-            layout.addWidget(ingredients_label)
+        selected_row = self.drugs_table.currentRow()
+        if selected_row >= 0:
+            # Get the drug name from the selected row
+            drug_name = self.drugs_table.item(selected_row, 0).text()
             
-            ingredients_table = QTableWidget(len(drug.ingredients), 4)
-            ingredients_table.setHorizontalHeaderLabels(["Name", "Quantity", "Unit Price", "Total Cost"])
-            ingredients_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+            # Find the drug in the database by name
+            drug = None
+            for d in self.drug_database.drugs:
+                if d.name == drug_name:
+                    drug = d
+                    break
+                    
+            if not drug:
+                QMessageBox.warning(self, "Error", "Could not find the selected drug.")
+                return
             
-            for i, ingredient in enumerate(drug.ingredients):
-                ingredients_table.setItem(i, 0, QTableWidgetItem(ingredient.name))
-                ingredients_table.setItem(i, 1, QTableWidgetItem(f"{ingredient.quantity}"))
-                ingredients_table.setItem(i, 2, QTableWidgetItem(f"${ingredient.unit_price:.2f}"))
-                ingredients_table.setItem(i, 3, QTableWidgetItem(f"${ingredient.total_cost:.2f}"))
+            # Create a message box with drug details
+            msg = QMessageBox(self)
+            msg.setWindowTitle(f"Drug Details: {drug.name}")
             
-            layout.addWidget(ingredients_table)
+            # Create a detailed message with drug information
+            details = f"<h2>{drug.name}</h2>"
+            details += f"<p><b>Drug Type:</b> {drug.drug_type}</p>"
+            details += f"<p><b>Base Price:</b> ${drug.base_price:.2f}</p>"
+            details += f"<p><b>Ingredient Cost:</b> ${drug.ingredient_cost:.2f}</p>"
+            details += f"<p><b>Profit:</b> ${(drug.base_price - drug.ingredient_cost):.2f}</p>"
+            details += f"<p><b>Profit Margin:</b> {drug.profit_margin:.1f}%</p>"
+            
+            if drug.notes:
+                details += f"<p><b>Notes:</b> {drug.notes}</p>"
+            
+            # Ingredients
+            details += "<h3>Ingredients:</h3>"
+            details += "<ul>"
+            for ing in drug.ingredients:
+                details += f"<li>{ing.name}: {ing.quantity} units at ${ing.unit_price:.2f} each = ${ing.total_cost:.2f}</li>"
+            details += "</ul>"
+            
+            # Effects
+            details += "<h3>Effects:</h3>"
+            details += "<ul>"
+            for effect in drug.effects:
+                color_style = f"background-color: {effect.color}; display: inline-block; width: 15px; height: 15px; margin-right: 5px;"
+                details += f"<li><div style='{color_style}'></div> {effect.name}"
+                if effect.description:
+                    details += f": {effect.description}"
+                details += "</li>"
+            details += "</ul>"
+            
+            msg.setText(details)
+            msg.setTextFormat(Qt.RichText)
+            
+            # Add buttons
+            submit_button = msg.addButton("Submit to Online Database", QMessageBox.ActionRole)
+            ok_button = msg.addButton(QMessageBox.Ok)
+            
+            msg.exec_()
+            
+            # Check which button was clicked
+            if msg.clickedButton() == submit_button:
+                self.submit_drug_to_online_db(drug)
+    
+    def update_auth_status(self):
+        """Update the authentication status label"""
+        if firebase_manager.is_authenticated():
+            email = firebase_manager.get_current_user_email()
+            username = firebase_manager.get_current_username()
+            status_text = f"Signed in as: {email}"
+            if username:
+                status_text += f" (Username: {username})"
+            self.auth_status_label.setText(status_text)
+            self.sign_in_button.setText("Sign Out")
+            self.sign_up_button.setVisible(False)
+            self.username_button.setEnabled(True)
+            self.my_submissions_button.setEnabled(True)
+        else:
+            self.auth_status_label.setText("Not signed in")
+            self.sign_in_button.setText("Sign In")
+            self.sign_up_button.setVisible(True)
+            self.username_button.setEnabled(False)
+            self.my_submissions_button.setEnabled(False)
+    
+    def handle_sign_in(self):
+        """Handle sign in/out button click"""
+        if firebase_manager.is_authenticated():
+            # Sign out
+            result = firebase_manager.sign_out()
+            if result["success"]:
+                QMessageBox.information(self, "Success", result["message"])
+            else:
+                QMessageBox.warning(self, "Error", result["message"])
+        else:
+            # Open sign in dialog
+            dialog = SignInDialog(self)
+            dialog.exec_()
         
-        # Effects
-        if drug.effects:
-            effects_label = QLabel("Effects:")
-            effects_label.setFont(QFont("Arial", 12, QFont.Bold))
-            layout.addWidget(effects_label)
+        # Update UI
+        self.update_auth_status()
+        self.refresh_online_drugs()
+    
+    def handle_sign_up(self):
+        """Handle sign up button click"""
+        dialog = SignUpDialog(self)
+        if dialog.exec_():
+            QMessageBox.information(self, "Success", "Account created and signed in successfully")
+            self.update_auth_status()
+            self.refresh_online_drugs()
             
-            effects_table = QTableWidget(len(drug.effects), 3)
-            effects_table.setHorizontalHeaderLabels(["Name", "Color", "Description"])
-            effects_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+    def handle_set_username(self):
+        """Open dialog to set or update username"""
+        dialog = SetUsernameDialog(self)
+        if dialog.exec_():
+            self.update_auth_status()
+            self.refresh_online_drugs()  # Refresh to show updated usernames
             
-            for i, effect in enumerate(drug.effects):
-                # Create item for effect name with color applied to text
-                name_item = QTableWidgetItem(effect.name)
-                name_item.setForeground(QColor(effect.color))
+    def on_drug_table_header_clicked(self, logical_index):
+        """Handle clicking on drug table header for sorting"""
+        # Let the built-in sorting handle it
+        pass
+        
+    def on_online_drug_table_header_clicked(self, logical_index):
+        """Handle clicking on online drug table header for sorting"""
+        # Let the built-in sorting handle it
+        pass
+    
+    def submit_drug_to_online_db(self, drug):
+        """Submit a drug to the online database"""
+        dialog = SubmitDrugDialog(self, drug)
+        if dialog.exec_():
+            self.statusBar().showMessage(f"Drug {drug.name} submitted to online database")
+            self.refresh_online_drugs()
+    
+    def refresh_online_drugs(self):
+        """Refresh the online drugs table"""
+        # Temporarily disable sorting to prevent issues while updating
+        sorting_enabled = self.online_drugs_table.isSortingEnabled()
+        self.online_drugs_table.setSortingEnabled(False)
+        
+        # Store the current sort column and order
+        sort_column = self.online_drugs_table.horizontalHeader().sortIndicatorSection()
+        sort_order = self.online_drugs_table.horizontalHeader().sortIndicatorOrder()
+        
+        # Clear the table
+        self.online_drugs_table.setRowCount(0)
+        
+        # Get drugs from Firebase
+        drugs = firebase_manager.get_all_drugs()
+        
+        # Populate the table
+        for i, drug_data in enumerate(drugs):
+            self.online_drugs_table.insertRow(i)
+            
+            # Name
+            name_item = QTableWidgetItem(drug_data.get("name", ""))
+            name_item.setData(Qt.UserRole, drug_data)  # Store the full drug data
+            
+            # Drug type
+            drug_type = drug_data.get("drug_type", "Weed")  # Default to Weed if not specified
+            type_item = QTableWidgetItem(drug_type)
+            
+            # Base price
+            base_price = drug_data.get("base_price", 0)
+            base_price_item = QTableWidgetItem(f"${base_price:.2f}")
+            base_price_item.setData(Qt.UserRole, base_price)
+            
+            # Submitted by
+            username = drug_data.get("username", None)
+            user_email = drug_data.get("user_email", "Unknown")
+            display_name = username if username else user_email
+            submitted_by_item = QTableWidgetItem(display_name)
+            
+            # Date
+            timestamp = drug_data.get("timestamp", None)
+            date_str = "Unknown"
+            sort_timestamp = 0
+            if timestamp:
+                # Handle Firestore DatetimeWithNanoseconds object
+                try:
+                    # If it's already a datetime object (from Firestore)
+                    date_str = timestamp.strftime("%Y-%m-%d %H:%M")
+                    sort_timestamp = timestamp.timestamp()  # Convert to Unix timestamp for sorting
+                except AttributeError:
+                    # If it's a Unix timestamp (milliseconds)
+                    from datetime import datetime
+                    date_str = datetime.fromtimestamp(timestamp / 1000).strftime("%Y-%m-%d %H:%M")
+                    sort_timestamp = timestamp / 1000  # Convert to seconds for sorting
+            
+            date_item = QTableWidgetItem()
+            date_item.setData(Qt.DisplayRole, date_str)
+            date_item.setData(Qt.UserRole, sort_timestamp)  # For sorting
+            
+            # Rating (upvotes)
+            upvotes = drug_data.get("upvotes", 0)
+            rating_item = QTableWidgetItem(f"{upvotes} 👍")
+            rating_item.setData(Qt.UserRole, upvotes)
+            
+            # Set items in the table
+            self.online_drugs_table.setItem(i, 0, name_item)
+            self.online_drugs_table.setItem(i, 1, type_item)
+            self.online_drugs_table.setItem(i, 2, base_price_item)
+            self.online_drugs_table.setItem(i, 3, submitted_by_item)
+            self.online_drugs_table.setItem(i, 4, date_item)
+            self.online_drugs_table.setItem(i, 5, rating_item)
+        
+        # Re-enable sorting if it was enabled before
+        self.online_drugs_table.setSortingEnabled(sorting_enabled)
+        
+        # Re-apply the sort if it was active
+        if sorting_enabled and sort_column >= 0:
+            self.online_drugs_table.sortItems(sort_column, sort_order)
+        
+        self.statusBar().showMessage(f"Loaded {len(drugs)} drugs from online database")
+    
+    def view_online_drug_details(self):
+        """View details of the selected online drug"""
+        selected_row = self.online_drugs_table.currentRow()
+        if selected_row >= 0:
+            # Get the drug data from the UserRole data of the name column
+            drug_data = self.online_drugs_table.item(selected_row, 0).data(Qt.UserRole)
+            if not drug_data:
+                QMessageBox.warning(self, "Error", "Could not find the selected drug data.")
+                return
                 
-                effects_table.setItem(i, 0, name_item)
-                effects_table.setItem(i, 1, QTableWidgetItem(effect.color))
-                effects_table.setItem(i, 2, QTableWidgetItem(effect.description))
-            
-            layout.addWidget(effects_table)
+            # Create a dialog to show the details
+            from online_db_dialogs import DrugDetailsDialog
+            dialog = DrugDetailsDialog(self, drug_data)
+            dialog.exec_()
+    
+    def import_online_drug(self):
+        """Import the selected drug from the online database"""
+        selected_row = self.online_drugs_table.currentRow()
+        if selected_row >= 0:
+            # Get the drug data from the UserRole data of the name column
+            drug_data = self.online_drugs_table.item(selected_row, 0).data(Qt.UserRole)
+            if not drug_data:
+                QMessageBox.warning(self, "Error", "Could not find the selected drug data.")
+                return
+            if drug_data:
+                # Convert to Drug object
+                drug = Drug.from_firebase_dict(drug_data)
+                
+                # Add to local database
+                self.drug_database.add_drug(drug)
+                self.update_tables()
+                self.statusBar().showMessage(f"Imported drug: {drug.name}")
+    
+    def view_my_submissions(self):
+        """View drugs submitted by the current user"""
+        if not firebase_manager.is_authenticated():
+            QMessageBox.warning(self, "Error", "You must be signed in to view your submissions")
+            return
         
-        # Close button
-        close_button = QPushButton("Close")
-        close_button.clicked.connect(dialog.accept)
-        layout.addWidget(close_button)
+        # Open a dialog showing all online drugs
+        dialog = ViewOnlineDrugsDialog(self, my_submissions=True)
+        result = dialog.exec_()
         
-        dialog.exec_()
+        # Only update if a drug was selected for import and dialog was accepted
+        if result and hasattr(dialog, "drug_to_import") and dialog.drug_to_import is not None:
+            # Import the drug if one was selected
+            self.drug_database.add_drug(dialog.drug_to_import)
+            self.update_tables()
+            self.statusBar().showMessage(f"Imported drug: {dialog.drug_to_import.name}")
     
     def update_tables(self):
         """Update both the drugs and ingredients tables"""
@@ -1052,7 +1341,14 @@ class MainWindow(QMainWindow):
     
     def update_drugs_table(self):
         """Update the drugs table with current database"""
+        # Temporarily disable sorting to prevent issues while updating
+        sorting_enabled = self.drugs_table.isSortingEnabled()
+        self.drugs_table.setSortingEnabled(False)
         self.drugs_table.setRowCount(0)
+        
+        # Store the current sort column and order
+        sort_column = self.drugs_table.horizontalHeader().sortIndicatorSection()
+        sort_order = self.drugs_table.horizontalHeader().sortIndicatorOrder()
         
         for drug in self.drug_database.drugs:
             row = self.drugs_table.rowCount()
@@ -1060,11 +1356,41 @@ class MainWindow(QMainWindow):
             
             profit = drug.base_price - drug.ingredient_cost
             
-            self.drugs_table.setItem(row, 0, QTableWidgetItem(drug.name))
-            self.drugs_table.setItem(row, 1, QTableWidgetItem(f"${drug.base_price:.2f}"))
-            self.drugs_table.setItem(row, 2, QTableWidgetItem(f"${drug.ingredient_cost:.2f}"))
-            self.drugs_table.setItem(row, 3, QTableWidgetItem(f"${profit:.2f}"))
-            self.drugs_table.setItem(row, 4, QTableWidgetItem(f"{drug.profit_margin:.1f}%"))
+            # Create items with appropriate sort values
+            name_item = QTableWidgetItem(drug.name)
+            
+            # Drug type
+            type_item = QTableWidgetItem(drug.drug_type)
+            
+            # Base price
+            base_price_item = QTableWidgetItem(f"${drug.base_price:.2f}")
+            base_price_item.setData(Qt.UserRole, drug.base_price)
+            
+            # Ingredient cost
+            ingredient_cost_item = QTableWidgetItem(f"${drug.ingredient_cost:.2f}")
+            ingredient_cost_item.setData(Qt.UserRole, drug.ingredient_cost)
+            
+            # Profit
+            profit_item = QTableWidgetItem(f"${profit:.2f}")
+            profit_item.setData(Qt.UserRole, profit)
+            
+            # Profit margin
+            profit_margin_item = QTableWidgetItem(f"{drug.profit_margin:.1f}%")
+            profit_margin_item.setData(Qt.UserRole, drug.profit_margin)
+            
+            self.drugs_table.setItem(row, 0, name_item)
+            self.drugs_table.setItem(row, 1, type_item)
+            self.drugs_table.setItem(row, 2, base_price_item)
+            self.drugs_table.setItem(row, 3, ingredient_cost_item)
+            self.drugs_table.setItem(row, 4, profit_item)
+            self.drugs_table.setItem(row, 5, profit_margin_item)
+        
+        # Re-enable sorting if it was enabled before
+        self.drugs_table.setSortingEnabled(sorting_enabled)
+        
+        # Re-apply the sort if it was active
+        if sorting_enabled and sort_column >= 0:
+            self.drugs_table.sortItems(sort_column, sort_order)
     
     def update_ingredients_table(self):
         """Update the ingredients table with current database"""

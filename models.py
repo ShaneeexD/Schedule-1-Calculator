@@ -35,6 +35,7 @@ class Drug:
     ingredients: List[Ingredient]
     effects: List[Effect] = None
     notes: str = ""
+    drug_type: str = "Weed"  # Default type is Weed, other options are Meth and Cocaine
 
     def __post_init__(self):
         """Initialize default values"""
@@ -56,6 +57,39 @@ class Drug:
     def to_dict(self) -> Dict:
         """Convert to dictionary for serialization"""
         return asdict(self)
+        
+    def to_firebase_dict(self) -> Dict:
+        """Convert to dictionary format suitable for Firebase"""
+        # Create a base dictionary with drug properties
+        result = {
+            "name": self.name,
+            "base_price": self.base_price,
+            "notes": self.notes,
+            "ingredient_cost": self.ingredient_cost,
+            "profit_margin": self.profit_margin,
+            "drug_type": self.drug_type
+        }
+        
+        # Add ingredients
+        result["ingredients"] = []
+        for ingredient in self.ingredients:
+            result["ingredients"].append({
+                "name": ingredient.name,
+                "quantity": ingredient.quantity,
+                "unit_price": ingredient.unit_price,
+                "total_cost": ingredient.total_cost
+            })
+        
+        # Add effects
+        result["effects"] = []
+        for effect in self.effects:
+            result["effects"].append({
+                "name": effect.name,
+                "description": effect.description,
+                "color": effect.color
+            })
+            
+        return result
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'Drug':
@@ -79,6 +113,35 @@ class Drug:
             effects.append(Effect(**effect_data))
             
         return cls(ingredients=ingredients, effects=effects, **data)
+        
+    @classmethod
+    def from_firebase_dict(cls, data: Dict) -> 'Drug':
+        """Create a Drug instance from a Firebase dictionary"""
+        # Extract basic properties
+        name = data.get("name", "")
+        base_price = data.get("base_price", 0.0)
+        notes = data.get("notes", "")
+        drug_type = data.get("drug_type", "Weed")  # Default to Weed if not specified
+        
+        # Extract ingredients
+        ingredients = []
+        for ing_data in data.get("ingredients", []):
+            ingredients.append(Ingredient(
+                name=ing_data.get("name", ""),
+                quantity=ing_data.get("quantity", 1.0),
+                unit_price=ing_data.get("unit_price", 0.0)
+            ))
+        
+        # Extract effects
+        effects = []
+        for effect_data in data.get("effects", []):
+            effects.append(Effect(
+                name=effect_data.get("name", ""),
+                description=effect_data.get("description", ""),
+                color=effect_data.get("color", "#FFFFFF")
+            ))
+        
+        return cls(name=name, base_price=base_price, ingredients=ingredients, effects=effects, notes=notes, drug_type=drug_type)
 
 
 class EffectDatabase:

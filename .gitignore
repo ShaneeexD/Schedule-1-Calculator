@@ -1,3 +1,66 @@
-*LiamSave.json
-*LiamSave_drugs.json
-*LiamSave_ingredients.json
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# PyCharm files
+.idea/
+
+# VS Code files
+.vscode/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Local database files
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# User-specific files
+auth_token.pickle
+
+# Firebase credentials (since we're hardcoding them in the app)
+# firebase-credentials.json
+# firebase_rules.json
+*.firebase_credentials.py
+*.firebase_rules.json
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+firebase_rules.json
+firebase_credentials.py

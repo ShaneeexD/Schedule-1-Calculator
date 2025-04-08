@@ -25,10 +25,11 @@
       }
     ],
     "effects": [],
-    "notes": ""
+    "notes": "",
+    "drug_type": "Weed"
   },
   {
-    "name": "Dream Slime (Coke)",
+    "name": "Dream Slime",
     "base_price": 800.0,
     "ingredients": [
       {
@@ -114,7 +115,8 @@
         "color": "#e89300"
       }
     ],
-    "notes": ""
+    "notes": "",
+    "drug_type": "Cocaine"
   },
   {
     "name": "AIDS (Weed)",
@@ -137,7 +139,8 @@
       }
     ],
     "effects": [],
-    "notes": ""
+    "notes": "",
+    "drug_type": "Weed"
   },
   {
     "name": "Super Lemon Haze (Weed)",
@@ -165,7 +168,8 @@
       }
     ],
     "effects": [],
-    "notes": ""
+    "notes": "",
+    "drug_type": "Weed"
   },
   {
     "name": "Big Pussy (Weed)",
@@ -183,7 +187,8 @@
       }
     ],
     "effects": [],
-    "notes": ""
+    "notes": "",
+    "drug_type": "Weed"
   },
   {
     "name": "California Piss (Weed)",
@@ -206,11 +211,12 @@
       }
     ],
     "effects": [],
-    "notes": ""
+    "notes": "",
+    "drug_type": "Weed"
   },
   {
-    "name": "Trube (Meth)",
-    "base_price": 220.0,
+    "name": "Trube",
+    "base_price": 161.0,
     "ingredients": [
       {
         "name": "Flu Medicine",
@@ -255,7 +261,8 @@
         "color": "#ff8000"
       }
     ],
-    "notes": ""
+    "notes": "",
+    "drug_type": "Meth"
   },
   {
     "name": "BBC (Weed)",
@@ -299,6 +306,7 @@
         "color": "#ff4800"
       }
     ],
-    "notes": ""
+    "notes": "",
+    "drug_type": "Weed"
   }
 ]
