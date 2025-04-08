@@ -84,7 +84,36 @@ class Drug:
 class EffectDatabase:
     """Manages a collection of effects"""
     def __init__(self):
-        self.effects: List[Effect] = []
+        # Initialize with hard-coded effects data
+        self.effects: List[Effect] = [
+            Effect(name="Explosive", description="", color="#ff0000"),
+            Effect(name="Electrifying", description="", color="#00ffff"),
+            Effect(name="Glowing", description="", color="#1aff22"),
+            Effect(name="Tropic Thunder", description="", color="#ff8000"),
+            Effect(name="Zombifying", description="", color="#008d00"),
+            Effect(name="Cyclopean", description="", color="#ff8000"),
+            Effect(name="Bright-Eyed", description="", color="#aaffff"),
+            Effect(name="Long Faced", description="", color="#b9b95c"),
+            Effect(name="Foggy", description="", color="#969696"),
+            Effect(name="Anti-Gravity", description="", color="#0800ff"),
+            Effect(name="Balding", description="", color="#e89300"),
+            Effect(name="Thought-Provoking", description="", color="#ffaaff"),
+            Effect(name="Sedating", description="", color="#55557f"),
+            Effect(name="Smelly", description="", color="#55aa00"),
+            Effect(name="Toxic", description="", color="#499100"),
+            Effect(name="Calorie-Dense", description="", color="#ffaaff"),
+            Effect(name="Athletic", description="", color="#00ffff"),
+            Effect(name="Slippery", description="", color="#aaffff"),
+            Effect(name="Gingeritis", description="", color="#ff8000"),
+            Effect(name="Spicy", description="", color="#ff4c3c"),
+            Effect(name="Seizure-Inducing", description="", color="#b9b95c"),
+            Effect(name="Schizophrenia", description="", color="#5555ff"),
+            Effect(name="Jennerising", description="", color="#ffaaff"),
+            Effect(name="Sneaky", description="", color="#969696"),
+            Effect(name="Refreshing", description="", color="#22aa61"),
+            Effect(name="Energizing", description="", color="#00aa00"),
+            Effect(name="Paranoia", description="", color="#ff4800")
+        ]
 
     def add_effect(self, effect: Effect) -> None:
         """Add an effect to the database"""
@@ -109,36 +138,32 @@ class EffectDatabase:
         """Get a list of all effect names"""
         return [effect.name for effect in self.effects]
 
-    def save_to_file(self, filename: str) -> None:
-        """Save the database to a JSON file"""
-        with open(filename, 'w') as f:
-            json.dump([asdict(effect) for effect in self.effects], f, indent=2)
-
-    def load_from_file(self, filename: str) -> None:
-        """Load the database from a JSON file"""
-        try:
-            with open(filename, 'r') as f:
-                data = json.load(f)
-                self.effects = []
-                for effect_data in data:
-                    # Convert old format (with potency) to new format (with color)
-                    if 'potency' in effect_data and 'color' not in effect_data:
-                        # Use a default color based on potency value (1-10)
-                        potency = effect_data.pop('potency', 5)
-                        # Generate a color from blue (potency 1) to red (potency 10)
-                        intensity = min(255, int((potency / 10) * 255))
-                        color = f"#{255-intensity:02x}{0:02x}{intensity:02x}"
-                        effect_data['color'] = color
-                    
-                    self.effects.append(Effect(**effect_data))
-        except (FileNotFoundError, json.JSONDecodeError):
-            self.effects = []
+    # Methods for loading/saving effects from/to JSON files have been removed
+    # since effects are now hard-coded
 
 
 class IngredientDatabase:
     """Manages a collection of base ingredients"""
     def __init__(self):
-        self.ingredients: List[Ingredient] = []
+        # Initialize with hard-coded ingredients data
+        self.ingredients: List[Ingredient] = [
+            Ingredient(name="Cuke", quantity=1.0, unit_price=2.0),
+            Ingredient(name="Banana", quantity=1.0, unit_price=2.0),
+            Ingredient(name="Paracetamol", quantity=1.0, unit_price=3.0),
+            Ingredient(name="Donut", quantity=1.0, unit_price=3.0),
+            Ingredient(name="Viagra", quantity=1.0, unit_price=4.0),
+            Ingredient(name="Mouth Wash", quantity=1.0, unit_price=4.0),
+            Ingredient(name="Flu Medicine", quantity=1.0, unit_price=5.0),
+            Ingredient(name="Gasoline", quantity=1.0, unit_price=5.0),
+            Ingredient(name="Energy Drink", quantity=1.0, unit_price=6.0),
+            Ingredient(name="Motor Oil", quantity=1.0, unit_price=6.0),
+            Ingredient(name="Mega Bean", quantity=1.0, unit_price=7.0),
+            Ingredient(name="Chili", quantity=1.0, unit_price=7.0),
+            Ingredient(name="Battery", quantity=1.0, unit_price=8.0),
+            Ingredient(name="Iodine", quantity=1.0, unit_price=8.0),
+            Ingredient(name="Addy", quantity=1.0, unit_price=9.0),
+            Ingredient(name="Horse Semen", quantity=1.0, unit_price=9.0)
+        ]
 
     def add_ingredient(self, ingredient: Ingredient) -> None:
         """Add an ingredient to the database"""
@@ -163,19 +188,8 @@ class IngredientDatabase:
         """Get a list of all ingredient names"""
         return [ingredient.name for ingredient in self.ingredients]
 
-    def save_to_file(self, filename: str) -> None:
-        """Save the database to a JSON file"""
-        with open(filename, 'w') as f:
-            json.dump([asdict(ingredient) for ingredient in self.ingredients], f, indent=2)
-
-    def load_from_file(self, filename: str) -> None:
-        """Load the database from a JSON file"""
-        try:
-            with open(filename, 'r') as f:
-                data = json.load(f)
-                self.ingredients = [Ingredient(**ingredient_data) for ingredient_data in data]
-        except (FileNotFoundError, json.JSONDecodeError):
-            self.ingredients = []
+    # Methods for loading/saving ingredients from/to JSON files have been removed
+    # since ingredients are now hard-coded
 
 
 class DrugDatabase:
