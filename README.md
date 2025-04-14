@@ -56,3 +56,4 @@ A comprehensive tool for the game "Schedule 1" that helps players manage drug re
 - Experiment with different ingredient combinations to maximize profit margins
 - Check the online database for inspiration and new recipe ideas
 - Use the "My Submissions" feature to manage your online contributions
+- IMPORTANT: For security reasons, please use a unique password for this tool

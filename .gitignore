@@ -55,6 +55,9 @@ auth_token.pickle
 *.firebase_credentials.py
 *.firebase_rules.json
 
+*.README.txt
+*.dist.zip
+
 # macOS
 .DS_Store
 
