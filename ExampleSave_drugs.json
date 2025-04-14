@@ -399,8 +399,99 @@
         "color": "#969696"
       }
     ],
-    "notes": "",
+    "notes": "Best mix for unlocking Lisa Gardener",
     "drug_type": "Weed",
+    "favorite": false
+  },
+  {
+    "name": "Miracle Drug",
+    "base_price": 16000.0,
+    "ingredients": [
+      {
+        "name": "Addy",
+        "quantity": 20.0,
+        "unit_price": 9.0
+      },
+      {
+        "name": "Viagra",
+        "quantity": 20.0,
+        "unit_price": 4.0
+      },
+      {
+        "name": "Iodine",
+        "quantity": 20.0,
+        "unit_price": 8.0
+      },
+      {
+        "name": "Banana",
+        "quantity": 20.0,
+        "unit_price": 2.0
+      },
+      {
+        "name": "Donut",
+        "quantity": 20.0,
+        "unit_price": 3.0
+      },
+      {
+        "name": "Horse Semen",
+        "quantity": 20.0,
+        "unit_price": 9.0
+      },
+      {
+        "name": "Energy Drink",
+        "quantity": 20.0,
+        "unit_price": 6.0
+      },
+      {
+        "name": "Mouth Wash",
+        "quantity": 20.0,
+        "unit_price": 4.0
+      }
+    ],
+    "effects": [
+      {
+        "name": "Electrifying",
+        "description": "",
+        "color": "#00ffff"
+      },
+      {
+        "name": "Sneaky",
+        "description": "",
+        "color": "#969696"
+      },
+      {
+        "name": "Jennerising",
+        "description": "",
+        "color": "#ffaaff"
+      },
+      {
+        "name": "Refreshing",
+        "description": "",
+        "color": "#22aa61"
+      },
+      {
+        "name": "Calorie-Dense",
+        "description": "",
+        "color": "#ffaaff"
+      },
+      {
+        "name": "Long Faced",
+        "description": "",
+        "color": "#b9b95c"
+      },
+      {
+        "name": "Athletic",
+        "description": "",
+        "color": "#00ffff"
+      },
+      {
+        "name": "Balding",
+        "description": "",
+        "color": "#e89300"
+      }
+    ],
+    "notes": "",
+    "drug_type": "Cocaine",
     "favorite": false
   }
 ]

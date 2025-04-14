@@ -952,8 +952,8 @@ class MainWindow(QMainWindow):
         """Edit the selected drug"""
         selected_row = self.drugs_table.currentRow()
         if selected_row >= 0:
-            # Get the drug name from the selected row
-            drug_name = self.drugs_table.item(selected_row, 0).text()
+            # Get the drug name from the selected row (column 1 after adding favorites column)
+            drug_name = self.drugs_table.item(selected_row, 1).text()
             
             # Find the drug in the database by name
             drug_index = -1
@@ -977,8 +977,8 @@ class MainWindow(QMainWindow):
         """Delete the selected drug"""
         selected_row = self.drugs_table.currentRow()
         if selected_row >= 0:
-            # Get the drug name from the selected row
-            drug_name = self.drugs_table.item(selected_row, 0).text()
+            # Get the drug name from the selected row (column 1 after adding favorites column)
+            drug_name = self.drugs_table.item(selected_row, 1).text()
             
             # Find the drug in the database by name
             drug_index = -1
