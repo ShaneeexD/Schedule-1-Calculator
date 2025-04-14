@@ -813,7 +813,10 @@ class MainWindow(QMainWindow):
         # Effects table
         self.effects_table = QTableWidget(0, 2)
         self.effects_table.setHorizontalHeaderLabels(["Name", "Description"])
-        self.effects_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        # Make name column smaller and description column stretch
+        self.effects_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Interactive)
+        self.effects_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.effects_table.setColumnWidth(0, 150)  # Set name column width to 150 pixels
         effects_layout.addWidget(self.effects_table)
         
         # Effect buttons
@@ -821,14 +824,17 @@ class MainWindow(QMainWindow):
         self.add_effect_button = QPushButton("Add Effect")
         self.edit_effect_button = QPushButton("Edit Effect")
         self.delete_effect_button = QPushButton("Delete Effect")
+        self.view_effect_button = QPushButton("View Description")
         
         self.add_effect_button.clicked.connect(self.add_effect_to_db)
         self.edit_effect_button.clicked.connect(self.edit_effect_in_db)
         self.delete_effect_button.clicked.connect(self.delete_effect_from_db)
+        self.view_effect_button.clicked.connect(self.view_effect_description)
         
         effect_buttons_layout.addWidget(self.add_effect_button)
         effect_buttons_layout.addWidget(self.edit_effect_button)
         effect_buttons_layout.addWidget(self.delete_effect_button)
+        effect_buttons_layout.addWidget(self.view_effect_button)
         effects_layout.addLayout(effect_buttons_layout)
         
         # File operations
@@ -1169,6 +1175,7 @@ class MainWindow(QMainWindow):
             details = f"<h2>{drug.name}</h2>"
             details += f"<p><b>Drug Type:</b> {drug.drug_type}</p>"
             details += f"<p><b>Base Price:</b> ${drug.base_price:.2f}</p>"
+            details += f"<p><b>Recommended Price:</b> ${(drug.base_price * 1.6):.2f}</p>"
             details += f"<p><b>Ingredient Cost:</b> ${drug.ingredient_cost:.2f}</p>"
             details += f"<p><b>Profit:</b> ${(drug.base_price - drug.ingredient_cost):.2f}</p>"
             details += f"<p><b>Profit Margin:</b> {drug.profit_margin:.1f}%</p>"
