@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
                              QSpinBox, QDoubleSpinBox, QFormLayout, QDialog, QMessageBox,
                              QTabWidget, QFileDialog, QHeaderView, QComboBox, QTextEdit,
-                             QColorDialog, QSlider, QStyledItemDelegate, QTextBrowser)
+                             QColorDialog, QSlider, QStyledItemDelegate, QTextBrowser, QCheckBox)
 from PyQt5.QtCore import Qt, QSize, QSortFilterProxyModel
 from PyQt5.QtGui import QFont, QIcon, QColor
 
@@ -713,7 +713,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Schedule 1 Drug Recipe Calculator")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1000, 600)
         
         # Initialize database
         self.drug_database = DrugDatabase()
@@ -734,10 +734,29 @@ class MainWindow(QMainWindow):
         drugs_tab = QWidget()
         drugs_layout = QVBoxLayout(drugs_tab)
         
+        # Search and filter controls
+        search_filter_layout = QHBoxLayout()
+        
+        # Search bar
+        search_label = QLabel("Search:")
+        self.drug_search_input = QLineEdit()
+        self.drug_search_input.setPlaceholderText("Search by name, type, or effects...")
+        self.drug_search_input.textChanged.connect(self.filter_drugs_table)
+        search_filter_layout.addWidget(search_label)
+        search_filter_layout.addWidget(self.drug_search_input)
+        
+        # Favorites filter
+        self.show_favorites_checkbox = QCheckBox("Show Favorites Only")
+        self.show_favorites_checkbox.stateChanged.connect(self.filter_drugs_table)
+        search_filter_layout.addWidget(self.show_favorites_checkbox)
+        
+        drugs_layout.addLayout(search_filter_layout)
+        
         # Drugs table
-        self.drugs_table = QTableWidget(0, 6)
-        self.drugs_table.setHorizontalHeaderLabels(["Name", "Type", "Base Price", "Ingredient Cost", "Profit", "Profit Margin"])
-        self.drugs_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.drugs_table = QTableWidget(0, 7)  # Added column for favorite
+        self.drugs_table.setHorizontalHeaderLabels(["Favorite", "Name", "Type", "Base Price", "Ingredient Cost", "Profit", "Profit Margin"])
+        self.drugs_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)  # Name column stretches
+        self.drugs_table.setColumnWidth(0, 70)  # Favorite column width
         
         # Enable sorting
         self.drugs_table.setSortingEnabled(True)
@@ -857,6 +876,16 @@ class MainWindow(QMainWindow):
         auth_layout.addWidget(self.username_button)
         online_db_layout.addLayout(auth_layout)
         
+        # Search bar for online database
+        online_search_layout = QHBoxLayout()
+        online_search_label = QLabel("Search:")
+        self.online_search_input = QLineEdit()
+        self.online_search_input.setPlaceholderText("Search by name, type, or creator...")
+        self.online_search_input.textChanged.connect(self.filter_online_drugs_table)
+        online_search_layout.addWidget(online_search_label)
+        online_search_layout.addWidget(self.online_search_input)
+        online_db_layout.addLayout(online_search_layout)
+        
         # Online drugs table
         self.online_drugs_table = QTableWidget(0, 6)
         self.online_drugs_table.setHorizontalHeaderLabels(["Name", "Type", "Base Price", "Submitted By", "Date", "Rating"])
@@ -900,6 +929,9 @@ class MainWindow(QMainWindow):
         # Initialize UI
         self.update_tables()
         self.update_auth_status()
+        
+        # Connect table cell click events
+        self.drugs_table.cellClicked.connect(self.toggle_favorite)
     
     def add_drug(self):
         """Open dialog to add a new drug"""
@@ -1115,8 +1147,8 @@ class MainWindow(QMainWindow):
         """View details of the selected drug"""
         selected_row = self.drugs_table.currentRow()
         if selected_row >= 0:
-            # Get the drug name from the selected row
-            drug_name = self.drugs_table.item(selected_row, 0).text()
+            # Get the drug name from the selected row (column 1 after adding favorites column)
+            drug_name = self.drugs_table.item(selected_row, 1).text()
             
             # Find the drug in the database by name
             drug = None
@@ -1237,6 +1269,37 @@ class MainWindow(QMainWindow):
         """Handle clicking on online drug table header for sorting"""
         # Let the built-in sorting handle it
         pass
+    
+    def filter_online_drugs_table(self):
+        """Filter the online drugs table based on search text"""
+        search_text = self.online_search_input.text().lower()
+        
+        for row in range(self.online_drugs_table.rowCount()):
+            # Get drug name, type and creator for searching
+            drug_name = self.online_drugs_table.item(row, 0).text().lower()
+            drug_type = self.online_drugs_table.item(row, 1).text().lower()
+            creator = self.online_drugs_table.item(row, 3).text().lower()
+            
+            # Get the full drug data for searching in effects
+            drug_data = self.online_drugs_table.item(row, 0).data(Qt.UserRole)
+            
+            # Check if row should be visible based on search
+            if search_text and search_text not in drug_name and search_text not in drug_type and search_text not in creator:
+                # Try to search in effects if available
+                effect_match = False
+                if drug_data and "effects" in drug_data:
+                    for effect in drug_data["effects"]:
+                        effect_name = effect.get("name", "").lower()
+                        if search_text in effect_name:
+                            effect_match = True
+                            break
+                
+                if not effect_match:
+                    self.online_drugs_table.setRowHidden(row, True)
+                else:
+                    self.online_drugs_table.setRowHidden(row, False)
+            else:
+                self.online_drugs_table.setRowHidden(row, False)
     
     def submit_drug_to_online_db(self, drug):
         """Submit a drug to the online database"""
@@ -1382,6 +1445,67 @@ class MainWindow(QMainWindow):
         self.update_ingredients_table()
         self.update_effects_table()
     
+    def filter_drugs_table(self):
+        """Filter the drugs table based on search text and favorites"""
+        search_text = self.drug_search_input.text().lower()
+        show_favorites_only = self.show_favorites_checkbox.isChecked()
+        
+        for row in range(self.drugs_table.rowCount()):
+            # Get drug name and type for searching
+            drug_name = self.drugs_table.item(row, 1).text().lower()
+            drug_type = self.drugs_table.item(row, 2).text().lower()
+            
+            # Get favorite status
+            is_favorite = self.drugs_table.item(row, 0).data(Qt.UserRole)
+            
+            # Check if row should be visible based on search and favorites filter
+            if show_favorites_only and not is_favorite:
+                self.drugs_table.setRowHidden(row, True)
+            elif search_text and search_text not in drug_name and search_text not in drug_type:
+                # Try to search in effects if available
+                effect_match = False
+                drug_index = -1
+                for i, drug in enumerate(self.drug_database.drugs):
+                    if drug.name == self.drugs_table.item(row, 1).text():
+                        drug_index = i
+                        break
+                        
+                if drug_index >= 0:
+                    for effect in self.drug_database.drugs[drug_index].effects:
+                        if search_text in effect.name.lower():
+                            effect_match = True
+                            break
+                            
+                if not effect_match:
+                    self.drugs_table.setRowHidden(row, True)
+                else:
+                    self.drugs_table.setRowHidden(row, False)
+            else:
+                self.drugs_table.setRowHidden(row, False)
+    
+    def toggle_favorite(self, row, column):
+        """Toggle favorite status when clicking on the favorite column"""
+        if column == 0:  # Favorite column
+            # Get the drug from the database
+            drug_name = self.drugs_table.item(row, 1).text()
+            for i, drug in enumerate(self.drug_database.drugs):
+                if drug.name == drug_name:
+                    # Toggle favorite status
+                    drug.favorite = not drug.favorite
+                    self.drug_database.drugs[i] = drug
+                    
+                    # Update the table cell
+                    favorite_item = self.drugs_table.item(row, 0)
+                    favorite_item.setText("★" if drug.favorite else "☆")
+                    favorite_item.setData(Qt.UserRole, drug.favorite)
+                    
+                    # Apply color to indicate favorite status
+                    if drug.favorite:
+                        favorite_item.setForeground(QColor("gold"))
+                    else:
+                        favorite_item.setForeground(QColor("gray"))
+                    break
+    
     def update_drugs_table(self):
         """Update the drugs table with current database"""
         # Temporarily disable sorting to prevent issues while updating
@@ -1393,11 +1517,37 @@ class MainWindow(QMainWindow):
         sort_column = self.drugs_table.horizontalHeader().sortIndicatorSection()
         sort_order = self.drugs_table.horizontalHeader().sortIndicatorOrder()
         
+        # Get search text and favorites filter
+        search_text = self.drug_search_input.text().lower() if hasattr(self, 'drug_search_input') else ""
+        show_favorites_only = self.show_favorites_checkbox.isChecked() if hasattr(self, 'show_favorites_checkbox') else False
+        
         for drug in self.drug_database.drugs:
+            # Apply filters
+            if show_favorites_only and not drug.favorite:
+                continue
+                
+            if search_text and search_text not in drug.name.lower() and search_text not in drug.drug_type.lower():
+                # Also search in effects
+                effect_match = False
+                for effect in drug.effects:
+                    if search_text in effect.name.lower():
+                        effect_match = True
+                        break
+                if not effect_match:
+                    continue
+            
             row = self.drugs_table.rowCount()
             self.drugs_table.insertRow(row)
             
             profit = drug.base_price - drug.ingredient_cost
+            
+            # Create favorite item
+            favorite_item = QTableWidgetItem("★" if drug.favorite else "☆")
+            favorite_item.setData(Qt.UserRole, drug.favorite)
+            if drug.favorite:
+                favorite_item.setForeground(QColor("gold"))
+            else:
+                favorite_item.setForeground(QColor("gray"))
             
             # Create items with appropriate sort values
             name_item = QTableWidgetItem(drug.name)
@@ -1421,12 +1571,13 @@ class MainWindow(QMainWindow):
             profit_margin_item = QTableWidgetItem(f"{drug.profit_margin:.1f}%")
             profit_margin_item.setData(Qt.UserRole, drug.profit_margin)
             
-            self.drugs_table.setItem(row, 0, name_item)
-            self.drugs_table.setItem(row, 1, type_item)
-            self.drugs_table.setItem(row, 2, base_price_item)
-            self.drugs_table.setItem(row, 3, ingredient_cost_item)
-            self.drugs_table.setItem(row, 4, profit_item)
-            self.drugs_table.setItem(row, 5, profit_margin_item)
+            self.drugs_table.setItem(row, 0, favorite_item)
+            self.drugs_table.setItem(row, 1, name_item)
+            self.drugs_table.setItem(row, 2, type_item)
+            self.drugs_table.setItem(row, 3, base_price_item)
+            self.drugs_table.setItem(row, 4, ingredient_cost_item)
+            self.drugs_table.setItem(row, 5, profit_item)
+            self.drugs_table.setItem(row, 6, profit_margin_item)
         
         # Re-enable sorting if it was enabled before
         self.drugs_table.setSortingEnabled(sorting_enabled)

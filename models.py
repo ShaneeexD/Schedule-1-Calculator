@@ -36,6 +36,7 @@ class Drug:
     effects: List[Effect] = None
     notes: str = ""
     drug_type: str = "Weed"  # Default type is Weed, other options are Meth and Cocaine
+    favorite: bool = False  # Flag to mark as favorite
 
     def __post_init__(self):
         """Initialize default values"""
@@ -56,7 +57,8 @@ class Drug:
 
     def to_dict(self) -> Dict:
         """Convert to dictionary for serialization"""
-        return asdict(self)
+        data = asdict(self)
+        return data
         
     def to_firebase_dict(self) -> Dict:
         """Convert to dictionary format suitable for Firebase"""
@@ -67,7 +69,8 @@ class Drug:
             "notes": self.notes,
             "ingredient_cost": self.ingredient_cost,
             "profit_margin": self.profit_margin,
-            "drug_type": self.drug_type
+            "drug_type": self.drug_type,
+            "favorite": self.favorite
         }
         
         # Add ingredients
@@ -122,6 +125,7 @@ class Drug:
         base_price = data.get("base_price", 0.0)
         notes = data.get("notes", "")
         drug_type = data.get("drug_type", "Weed")  # Default to Weed if not specified
+        favorite = data.get("favorite", False)
         
         # Extract ingredients
         ingredients = []
@@ -141,7 +145,7 @@ class Drug:
                 color=effect_data.get("color", "#FFFFFF")
             ))
         
-        return cls(name=name, base_price=base_price, ingredients=ingredients, effects=effects, notes=notes, drug_type=drug_type)
+        return cls(name=name, base_price=base_price, ingredients=ingredients, effects=effects, notes=notes, drug_type=drug_type, favorite=favorite)
 
 
 class EffectDatabase:

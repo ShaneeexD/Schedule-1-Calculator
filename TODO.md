@@ -26,9 +26,10 @@
 - [x] Add drug rating/upvote system
 - [x] Implement user profile and submissions management
 - [x] Create standalone executable for distribution
+- [x] Implement search functionality for online database
+- [x] Implement favorites system
 
 ## Future Enhancements
-- [ ] Implement favorites system
 - [ ] Add filtering options
 - [ ] Add sorting for numeric columns (not working currently)
 - [ ] Create data visualization for profit margins
@@ -37,7 +38,6 @@
 - [ ] Implement recipe optimization suggestions
 - [ ] Add color-coded effect visualization in drug details
 - [ ] Add user comments on online drug submissions
-- [ ] Implement search functionality for online database
 - [ ] Add notifications for new highly-rated drugs
 - [ ] Create a trending section for popular recipes
 

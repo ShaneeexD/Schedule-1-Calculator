@@ -26,7 +26,8 @@
     ],
     "effects": [],
     "notes": "",
-    "drug_type": "Weed"
+    "drug_type": "Weed",
+    "favorite": false
   },
   {
     "name": "Dream Slime",
@@ -116,7 +117,8 @@
       }
     ],
     "notes": "",
-    "drug_type": "Cocaine"
+    "drug_type": "Cocaine",
+    "favorite": false
   },
   {
     "name": "AIDS (Weed)",
@@ -140,7 +142,8 @@
     ],
     "effects": [],
     "notes": "",
-    "drug_type": "Weed"
+    "drug_type": "Weed",
+    "favorite": false
   },
   {
     "name": "Super Lemon Haze (Weed)",
@@ -169,7 +172,8 @@
     ],
     "effects": [],
     "notes": "",
-    "drug_type": "Weed"
+    "drug_type": "Weed",
+    "favorite": false
   },
   {
     "name": "Big Pussy (Weed)",
@@ -188,7 +192,8 @@
     ],
     "effects": [],
     "notes": "",
-    "drug_type": "Weed"
+    "drug_type": "Weed",
+    "favorite": false
   },
   {
     "name": "California Piss (Weed)",
@@ -212,7 +217,8 @@
     ],
     "effects": [],
     "notes": "",
-    "drug_type": "Weed"
+    "drug_type": "Weed",
+    "favorite": false
   },
   {
     "name": "Trube",
@@ -262,7 +268,8 @@
       }
     ],
     "notes": "",
-    "drug_type": "Meth"
+    "drug_type": "Meth",
+    "favorite": true
   },
   {
     "name": "BBC (Weed)",
@@ -307,6 +314,93 @@
       }
     ],
     "notes": "",
-    "drug_type": "Weed"
+    "drug_type": "Weed",
+    "favorite": false
+  },
+  {
+    "name": "Lisa Gardener (Grandaddy Purple)",
+    "base_price": 99.0,
+    "ingredients": [
+      {
+        "name": "Cuke",
+        "quantity": 1.0,
+        "unit_price": 2.0
+      },
+      {
+        "name": "Paracetamol",
+        "quantity": 1.0,
+        "unit_price": 3.0
+      },
+      {
+        "name": "Motor Oil",
+        "quantity": 1.0,
+        "unit_price": 6.0
+      },
+      {
+        "name": "Cuke",
+        "quantity": 1.0,
+        "unit_price": 2.0
+      },
+      {
+        "name": "Motor Oil",
+        "quantity": 1.0,
+        "unit_price": 6.0
+      },
+      {
+        "name": "Cuke",
+        "quantity": 1.0,
+        "unit_price": 2.0
+      },
+      {
+        "name": "Mega Bean",
+        "quantity": 1.0,
+        "unit_price": 7.0
+      }
+    ],
+    "effects": [
+      {
+        "name": "Sedating",
+        "description": "Causes user to have a vignette around screen and mouse smoothing.",
+        "color": "#55557f"
+      },
+      {
+        "name": "Anti-Gravity",
+        "description": "Causes user to jump higher.",
+        "color": "#0800ff"
+      },
+      {
+        "name": "Paranoia",
+        "description": "Causes user to have a bad high. Also makes NPCs appear to stare at the user from long distances.",
+        "color": "#ff4800"
+      },
+      {
+        "name": "Schizophrenic",
+        "description": "Causes user to run backwards while saying 'oh no' (muffled) and hear muffled voices. Loud heart beat, open mouth frown, and squinting eyes. User's vision will also randomly pulse.",
+        "color": "#5555ff"
+      },
+      {
+        "name": "Munchies",
+        "description": "",
+        "color": "#943501"
+      },
+      {
+        "name": "Laxative",
+        "description": "Causes user to constantly soil themselves.",
+        "color": "#362801"
+      },
+      {
+        "name": "Cyclopean",
+        "description": "Causes user to only have one eye.",
+        "color": "#ff8000"
+      },
+      {
+        "name": "Foggy",
+        "description": "Causes a fog cloud effect around user. Also causes user to perceive the world as extremely foggy, significantly limiting visibility.",
+        "color": "#969696"
+      }
+    ],
+    "notes": "",
+    "drug_type": "Weed",
+    "favorite": false
   }
 ]
