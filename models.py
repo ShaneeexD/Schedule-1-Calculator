@@ -179,6 +179,11 @@ class EffectDatabase:
             Effect(name="Laxative", description="", color="#362801"),
             Effect(name="Disorienting", description="", color="#d47a35"),
             Effect(name="Calming", description="", color="#d6c44f"),
+            Effect(name="Euphoric", description="", color="#f5ce62"),
+            Effect(name="Focused", description="", color="#62e9f5"),
+            Effect(name="Lethal", description="", color="#b8000f"),
+            Effect(name="Munchies", description="", color="#943501"),
+            Effect(name="Shrinking", description="", color="#04b398"),
         ]
 
     def add_effect(self, effect: Effect) -> None:
