@@ -179,6 +179,18 @@ class FirebaseManager:
             self.load_username()
         return self.username
         
+    def reset_password(self, email: str) -> Dict:
+        """Send a password reset email to the user"""
+        try:
+            auth.send_password_reset_email(email)
+            return {"success": True, "message": "Password reset email sent. Please check your inbox."}
+        except Exception as e:
+            error_message = str(e)
+            if "EMAIL_NOT_FOUND" in error_message:
+                return {"success": False, "message": "Email not found"}
+            else:
+                return {"success": False, "message": f"Error: {error_message}"}
+        
     def set_username(self, username: str) -> Dict:
         """Set or update the username for the current user"""
         if not self.is_authenticated():

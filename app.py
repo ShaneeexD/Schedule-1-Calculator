@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
                              QSpinBox, QDoubleSpinBox, QFormLayout, QDialog, QMessageBox,
                              QTabWidget, QFileDialog, QHeaderView, QComboBox, QTextEdit,
-                             QColorDialog, QSlider, QStyledItemDelegate)
+                             QColorDialog, QSlider, QStyledItemDelegate, QTextBrowser)
 from PyQt5.QtCore import Qt, QSize, QSortFilterProxyModel
 from PyQt5.QtGui import QFont, QIcon, QColor
 
@@ -1036,6 +1036,49 @@ class MainWindow(QMainWindow):
                 self.effect_database.effects[selected_row] = new_effect
                 self.update_tables()
                 self.statusBar().showMessage(f"Updated effect: {new_effect.name}")
+                
+    def view_effect_description(self):
+        """View the full description of the selected effect"""
+        selected_row = self.effects_table.currentRow()
+        if selected_row < 0:
+            QMessageBox.warning(self, "No Effect Selected", "Please select an effect to view its description.")
+            return
+        
+        # Get the effect name and full description
+        effect_name = self.effects_table.item(selected_row, 0).text()
+        effect_description = self.effects_table.item(selected_row, 0).data(Qt.UserRole)
+        
+        # If no description is available, show a message
+        if not effect_description:
+            effect_description = "No description available for this effect."
+        
+        # Create and show a dialog with the description
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Effect Description: {effect_name}")
+        dialog.setMinimumSize(500, 300)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Add a label with the effect name in its color
+        name_label = QLabel(effect_name)
+        name_label.setFont(QFont("Arial", 14, QFont.Bold))
+        effect = self.effect_database.get_effect(effect_name)
+        if effect:
+            name_label.setStyleSheet(f"color: {effect.color};")
+        layout.addWidget(name_label)
+        
+        # Add a text browser for the description (allows for scrolling if needed)
+        description_browser = QTextBrowser()
+        description_browser.setPlainText(effect_description)
+        description_browser.setFont(QFont("Arial", 12))
+        layout.addWidget(description_browser)
+        
+        # Add a close button
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button)
+        
+        dialog.exec_()
     
     def delete_effect_from_db(self):
         """Delete the selected effect from the database"""
@@ -1415,8 +1458,16 @@ class MainWindow(QMainWindow):
             name_item = QTableWidgetItem(effect.name)
             name_item.setForeground(QColor(effect.color))
             
+            # Create a truncated description (first 50 characters + "..." if longer)
+            desc = effect.description
+            if len(desc) > 50:
+                desc = desc[:50] + "..."
+            
             self.effects_table.setItem(row, 0, name_item)
-            self.effects_table.setItem(row, 1, QTableWidgetItem(effect.description))
+            self.effects_table.setItem(row, 1, QTableWidgetItem(desc))
+            
+            # Store the full description as user data for later retrieval
+            self.effects_table.item(row, 0).setData(Qt.UserRole, effect.description)
     
     def new_database(self):
         """Create a new empty database"""

@@ -52,11 +52,11 @@ auth_token.pickle
 # Firebase credentials (since we're hardcoding them in the app)
 # firebase-credentials.json
 # firebase_rules.json
-*.firebase_credentials.py
-*.firebase_rules.json
+firebase_credentials.py
+firebase_rules.json
 
-*.README.txt
-*.dist.zip
+README.txt
+dist.zip
 
 # macOS
 .DS_Store

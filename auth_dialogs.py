@@ -30,14 +30,17 @@ class SignInDialog(QDialog):
         button_layout = QHBoxLayout()
         self.sign_in_button = QPushButton("Sign In")
         self.sign_up_button = QPushButton("Sign Up")
+        self.forgot_password_button = QPushButton("Forgot Password")
         self.cancel_button = QPushButton("Cancel")
         
         self.sign_in_button.clicked.connect(self.sign_in)
         self.sign_up_button.clicked.connect(self.open_sign_up)
+        self.forgot_password_button.clicked.connect(self.open_password_reset)
         self.cancel_button.clicked.connect(self.reject)
         
         button_layout.addWidget(self.sign_in_button)
         button_layout.addWidget(self.sign_up_button)
+        button_layout.addWidget(self.forgot_password_button)
         button_layout.addWidget(self.cancel_button)
         
         layout.addRow("", button_layout)
@@ -65,6 +68,20 @@ class SignInDialog(QDialog):
         dialog = SignUpDialog(self.parent())
         if dialog.exec_():
             self.accept()
+            
+    def open_password_reset(self):
+        """Send password reset email"""
+        email = self.email_input.text()
+        
+        if not email:
+            QMessageBox.warning(self, "Error", "Please enter your email address first")
+            return
+        
+        result = firebase_manager.reset_password(email)
+        if result["success"]:
+            QMessageBox.information(self, "Success", result["message"])
+        else:
+            QMessageBox.warning(self, "Error", result["message"])
 
 
 class SignUpDialog(QDialog):
