@@ -53,8 +53,15 @@ class FirebaseManager:
         self.email = None
         self.username = None
         
-        # Path for storing auth tokens
-        self.token_path = Path(os.path.dirname(__file__)) / 'auth_token.pickle'
+        # Path for storing auth tokens in a persistent location
+        # Use AppData folder for Windows to ensure persistence in executable mode
+        app_data_dir = os.path.join(os.environ.get('APPDATA', ''), 'Schedule1Calculator')
+        
+        # Create the directory if it doesn't exist
+        if not os.path.exists(app_data_dir):
+            os.makedirs(app_data_dir)
+            
+        self.token_path = Path(app_data_dir) / 'auth_token.pickle'
         
         # Try to load saved tokens
         self.load_auth_tokens()

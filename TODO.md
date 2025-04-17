@@ -28,10 +28,11 @@
 - [x] Create standalone executable for distribution
 - [x] Implement search functionality for online database
 - [x] Implement favorites system
-- [x] Change weed to the different types
+- [x] Change weed to the different types (strains)
 - [x] Add a "How to submit" option in the My Submissions tab
 - [x] Auto load the online database
 - [x] Add a "Copy Drug" option in the drug tab
+- [x] Sign in persistence
 
 
 ## Future Enhancements
