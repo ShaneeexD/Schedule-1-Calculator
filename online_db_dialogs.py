@@ -175,12 +175,14 @@ class ViewOnlineDrugsDialog(QDialog):
         self.view_button = QPushButton("View Details")
         self.import_button = QPushButton("Import Drug")
         self.delete_button = QPushButton("Delete")
+        self.help_button = QPushButton("How do I submit a drug?")
         self.close_button = QPushButton("Close")
         
         self.refresh_button.clicked.connect(self.refresh_drugs)
         self.view_button.clicked.connect(self.view_drug_details)
         self.import_button.clicked.connect(self.import_drug)
         self.delete_button.clicked.connect(self.delete_drug)
+        self.help_button.clicked.connect(self.show_submission_help)
         self.close_button.clicked.connect(self.accept)
         
         # Only show delete button if authenticated
@@ -190,6 +192,7 @@ class ViewOnlineDrugsDialog(QDialog):
         button_layout.addWidget(self.view_button)
         button_layout.addWidget(self.import_button)
         button_layout.addWidget(self.delete_button)
+        button_layout.addWidget(self.help_button)
         button_layout.addWidget(self.close_button)
         
         layout.addLayout(button_layout)
@@ -249,6 +252,29 @@ class ViewOnlineDrugsDialog(QDialog):
         """Handle clicking on table header for sorting"""
         # Let the built-in sorting handle it
         pass
+        
+    def show_submission_help(self):
+        """Show a dialog explaining how to submit a drug to the online database"""
+        msg = QMessageBox(self)
+        msg.setWindowTitle("How to Submit a Drug")
+        msg.setIcon(QMessageBox.Information)
+        
+        help_text = (
+            "<h3>How to submit a drug to the online database:</h3>"
+            "<ol>"
+            "<li>Go to the <b>Drugs</b> tab in the main application</li>"
+            "<li>Select the drug you want to submit</li>"
+            "<li>Click the <b>View Details</b> button</li>"
+            "<li>In the details dialog, click the <b>Submit to Online Database</b> button</li>"
+            "<li>Add any comments about your drug (optional)</li>"
+            "<li>Click <b>Submit Drug</b></li>"
+            "</ol>"
+            "<p>Note: You must be signed in to submit drugs to the online database.</p>"
+        )
+        
+        msg.setText(help_text)
+        msg.setTextFormat(Qt.RichText)
+        msg.exec_()
     
     def refresh_drugs(self):
         """Refresh the drugs table"""

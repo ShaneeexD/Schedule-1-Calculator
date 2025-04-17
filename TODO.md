@@ -28,9 +28,15 @@
 - [x] Create standalone executable for distribution
 - [x] Implement search functionality for online database
 - [x] Implement favorites system
+- [x] Change weed to the different types
+- [x] Add a "How to submit" option in the My Submissions tab
+- [x] Auto load the online database
+- [x] Add a "Copy Drug" option in the drug tab
+
 
 ## Future Enhancements
 - [ ] Add filtering options
+- [ ] Add other ingredients (fertilizer, psuedo etc.) into calculation
 - [ ] Add sorting for numeric columns (not working currently)
 - [ ] Create data visualization for profit margins
 - [ ] Add export functionality (CSV/Excel)

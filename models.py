@@ -35,7 +35,7 @@ class Drug:
     ingredients: List[Ingredient]
     effects: List[Effect] = None
     notes: str = ""
-    drug_type: str = "Weed"  # Default type is Weed, other options are Meth and Cocaine
+    drug_type: str = "OG Kush"  # Default type is OG Kush, other options are Meth and Cocaine
     favorite: bool = False  # Flag to mark as favorite
 
     def __post_init__(self):
@@ -124,7 +124,7 @@ class Drug:
         name = data.get("name", "")
         base_price = data.get("base_price", 0.0)
         notes = data.get("notes", "")
-        drug_type = data.get("drug_type", "Weed")  # Default to Weed if not specified
+        drug_type = data.get("drug_type", "OG Kush")  # Default to OG Kush if not specified
         favorite = data.get("favorite", False)
         
         # Extract ingredients

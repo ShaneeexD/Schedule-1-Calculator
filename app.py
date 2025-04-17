@@ -446,7 +446,7 @@ class AddDrugDialog(QDialog):
         
         # Drug type
         self.type_combo = QComboBox()
-        self.type_combo.addItems(["Weed", "Meth", "Cocaine"])
+        self.type_combo.addItems(["OG Kush", "Sour Diesel", "Green Crack", "Grandaddy Purple", "Meth", "Cocaine"])
         if drug:
             self.type_combo.setCurrentText(drug.drug_type)
         form_layout.addRow("Drug Type:", self.type_combo)
@@ -769,14 +769,17 @@ class MainWindow(QMainWindow):
         self.edit_button = QPushButton("Edit Drug")
         self.delete_button = QPushButton("Delete Drug")
         self.view_button = QPushButton("View Details")
+        self.copy_button = QPushButton("Copy Drug")
         
         self.add_button.clicked.connect(self.add_drug)
         self.edit_button.clicked.connect(self.edit_drug)
         self.delete_button.clicked.connect(self.delete_drug)
         self.view_button.clicked.connect(self.view_drug_details)
+        self.copy_button.clicked.connect(self.copy_drug)
         
         buttons_layout.addWidget(self.add_button)
         buttons_layout.addWidget(self.edit_button)
+        buttons_layout.addWidget(self.copy_button)
         buttons_layout.addWidget(self.delete_button)
         buttons_layout.addWidget(self.view_button)
         drugs_layout.addLayout(buttons_layout)
@@ -929,6 +932,9 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(effects_tab, "Effects")
         self.tabs.addTab(online_db_tab, "Online Database")
         
+        # Connect tab change event to load online drugs when switching to the Online Database tab
+        self.tabs.currentChanged.connect(self.on_tab_changed)
+        
         # Status bar
         self.statusBar().showMessage("Ready")
         
@@ -939,6 +945,12 @@ class MainWindow(QMainWindow):
         # Connect table cell click events
         self.drugs_table.cellClicked.connect(self.toggle_favorite)
     
+    def on_tab_changed(self, index):
+        """Handle tab change event"""
+        # If switching to the Online Database tab (index 3), load the online drugs
+        if index == 3:  # Online Database tab
+            self.refresh_online_drugs()
+    
     def add_drug(self):
         """Open dialog to add a new drug"""
         dialog = AddDrugDialog(self, ingredient_db=self.ingredient_database, effect_db=self.effect_database)
@@ -947,6 +959,34 @@ class MainWindow(QMainWindow):
             self.drug_database.add_drug(drug)
             self.update_tables()
             self.statusBar().showMessage(f"Added drug: {drug.name}")
+    
+    def copy_drug(self):
+        """Create a copy of the selected drug"""
+        selected_row = self.drugs_table.currentRow()
+        if selected_row >= 0:
+            # Get the drug name from the selected row (column 1 after adding favorites column)
+            drug_name = self.drugs_table.item(selected_row, 1).text()
+            
+            # Find the drug in the database by name
+            drug = None
+            for d in self.drug_database.drugs:
+                if d.name == drug_name:
+                    drug = d
+                    break
+                    
+            if not drug:
+                QMessageBox.warning(self, "Error", "Could not find the selected drug.")
+                return
+            
+            # Create a copy of the drug with a new name
+            from copy import deepcopy
+            new_drug = deepcopy(drug)
+            new_drug.name = f"{drug.name} (Copy)"
+            
+            # Add the copied drug to the database
+            self.drug_database.add_drug(new_drug)
+            self.update_tables()
+            self.statusBar().showMessage(f"Created copy: {new_drug.name}")
     
     def edit_drug(self):
         """Edit the selected drug"""
@@ -1340,7 +1380,7 @@ class MainWindow(QMainWindow):
             name_item.setData(Qt.UserRole, drug_data)  # Store the full drug data
             
             # Drug type
-            drug_type = drug_data.get("drug_type", "Weed")  # Default to Weed if not specified
+            drug_type = drug_data.get("drug_type", "OG Kush")  # Default to Weed if not specified
             type_item = QTableWidgetItem(drug_type)
             
             # Base price
