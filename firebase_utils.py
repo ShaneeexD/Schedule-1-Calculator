@@ -49,6 +49,7 @@ class FirebaseManager:
         self.user = None
         self.id_token = None
         self.refresh_token = None
+        self.db = db  # Add the Firestore database client
         self.local_id = None
         self.email = None
         self.username = None

@@ -55,6 +55,10 @@ auth_token.pickle
 firebase_credentials.py
 firebase_rules.json
 
+announcement_admin.py
+
+
+
 README.txt
 dist.zip
 

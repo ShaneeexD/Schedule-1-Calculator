@@ -18,6 +18,7 @@ from firebase_utils import firebase_manager
 from auth_dialogs import SignInDialog, SignUpDialog
 from online_db_dialogs import SubmitDrugDialog, ViewOnlineDrugsDialog
 from username_dialog import SetUsernameDialog
+from announcement_tab import AnnouncementTab
 
 
 class IngredientDialog(QDialog):
@@ -926,11 +927,15 @@ class MainWindow(QMainWindow):
         # Add file buttons to online tab too
         online_db_layout.addLayout(file_buttons_layout)
         
+        # Create Announcements tab
+        announcements_tab = AnnouncementTab(firebase_manager)
+        
         # Add tabs
         self.tabs.addTab(drugs_tab, "Drugs")
         self.tabs.addTab(ingredients_tab, "Ingredients")
         self.tabs.addTab(effects_tab, "Effects")
         self.tabs.addTab(online_db_tab, "Online Database")
+        self.tabs.addTab(announcements_tab, "Announcements")
         
         # Connect tab change event to load online drugs when switching to the Online Database tab
         self.tabs.currentChanged.connect(self.on_tab_changed)
@@ -950,6 +955,12 @@ class MainWindow(QMainWindow):
         # If switching to the Online Database tab (index 3), load the online drugs
         if index == 3:  # Online Database tab
             self.refresh_online_drugs()
+        # If switching to the Announcements tab (index 4), refresh announcements
+        elif index == 4:  # Announcements tab
+            # Get the announcements tab widget and call its load_announcements method
+            announcements_tab = self.tabs.widget(4)
+            if hasattr(announcements_tab, 'load_announcements'):
+                announcements_tab.load_announcements()
     
     def add_drug(self):
         """Open dialog to add a new drug"""
