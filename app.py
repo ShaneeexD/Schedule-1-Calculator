@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Schedule 1 Drug Recipe Calculator - Main Application
 """
@@ -9,7 +11,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QLabel, QPushButton, QLineEdit, QTableWidget, QTableWidgetItem,
                              QSpinBox, QDoubleSpinBox, QFormLayout, QDialog, QMessageBox,
                              QTabWidget, QFileDialog, QHeaderView, QComboBox, QTextEdit,
-                             QColorDialog, QSlider, QStyledItemDelegate, QTextBrowser, QCheckBox)
+                             QColorDialog, QSlider, QStyledItemDelegate, QTextBrowser, QCheckBox,
+                             QInputDialog, QListWidget, QListWidgetItem)
 from PyQt5.QtCore import Qt, QSize, QSortFilterProxyModel
 from PyQt5.QtGui import QFont, QIcon, QColor
 
@@ -19,6 +22,7 @@ from auth_dialogs import SignInDialog, SignUpDialog
 from online_db_dialogs import SubmitDrugDialog, ViewOnlineDrugsDialog
 from username_dialog import SetUsernameDialog
 from announcement_tab import AnnouncementTab
+from import_save_dialog import ImportSaveDialog
 
 
 class IngredientDialog(QDialog):
@@ -771,18 +775,21 @@ class MainWindow(QMainWindow):
         self.delete_button = QPushButton("Delete Drug")
         self.view_button = QPushButton("View Details")
         self.copy_button = QPushButton("Copy Drug")
+        self.import_save_button = QPushButton("Import drugs from save")
         
         self.add_button.clicked.connect(self.add_drug)
         self.edit_button.clicked.connect(self.edit_drug)
         self.delete_button.clicked.connect(self.delete_drug)
         self.view_button.clicked.connect(self.view_drug_details)
         self.copy_button.clicked.connect(self.copy_drug)
+        self.import_save_button.clicked.connect(self.import_from_save)
         
         buttons_layout.addWidget(self.add_button)
         buttons_layout.addWidget(self.edit_button)
         buttons_layout.addWidget(self.copy_button)
         buttons_layout.addWidget(self.delete_button)
         buttons_layout.addWidget(self.view_button)
+        buttons_layout.addWidget(self.import_save_button)
         drugs_layout.addLayout(buttons_layout)
         
         # Ingredients tab
@@ -971,34 +978,6 @@ class MainWindow(QMainWindow):
             self.update_tables()
             self.statusBar().showMessage(f"Added drug: {drug.name}")
     
-    def copy_drug(self):
-        """Create a copy of the selected drug"""
-        selected_row = self.drugs_table.currentRow()
-        if selected_row >= 0:
-            # Get the drug name from the selected row (column 1 after adding favorites column)
-            drug_name = self.drugs_table.item(selected_row, 1).text()
-            
-            # Find the drug in the database by name
-            drug = None
-            for d in self.drug_database.drugs:
-                if d.name == drug_name:
-                    drug = d
-                    break
-                    
-            if not drug:
-                QMessageBox.warning(self, "Error", "Could not find the selected drug.")
-                return
-            
-            # Create a copy of the drug with a new name
-            from copy import deepcopy
-            new_drug = deepcopy(drug)
-            new_drug.name = f"{drug.name} (Copy)"
-            
-            # Add the copied drug to the database
-            self.drug_database.add_drug(new_drug)
-            self.update_tables()
-            self.statusBar().showMessage(f"Created copy: {new_drug.name}")
-    
     def edit_drug(self):
         """Edit the selected drug"""
         selected_row = self.drugs_table.currentRow()
@@ -1023,6 +1002,576 @@ class MainWindow(QMainWindow):
                 self.drug_database.drugs[drug_index] = dialog.get_drug()
                 self.update_tables()
                 self.statusBar().showMessage(f"Updated drug: {drug.name}")
+
+    def copy_drug(self):
+        """Create a copy of the selected drug"""
+        selected_row = self.drugs_table.currentRow()
+        if selected_row >= 0:
+            # Get the drug name from the selected row (column 1 after adding favorites column)
+            drug_name = self.drugs_table.item(selected_row, 1).text()
+            
+            # Find the drug in the database by name
+            drug = None
+            for d in self.drug_database.drugs:
+                if d.name == drug_name:
+                    drug = d
+                    break
+                    
+            if not drug:
+                QMessageBox.warning(self, "Error", "Could not find the selected drug.")
+                return
+                
+            # Create a copy with a new name
+            new_name, ok = QInputDialog.getText(
+                self, "Copy Drug", "Enter name for the copy:",
+                QLineEdit.Normal, f"{drug.name} (Copy)"
+            )
+            
+            if ok and new_name:
+                # Check if the name already exists
+                for d in self.drug_database.drugs:
+                    if d.name == new_name:
+                        QMessageBox.warning(self, "Error", f"A drug named '{new_name}' already exists.")
+                        return
+                
+                # Create a deep copy of the drug
+                new_drug = Drug(
+                    name=new_name,
+                    base_price=drug.base_price,
+                    ingredients=[Ingredient(name=i.name, quantity=i.quantity, unit_price=i.unit_price) for i in drug.ingredients],
+                    effects=[Effect(name=e.name, description=e.description, color=e.color) for e in drug.effects],
+                    notes=drug.notes,
+                    drug_type=drug.drug_type,
+                    favorite=False  # Don't copy favorite status
+                )
+                
+                # Add to database
+                self.drug_database.add_drug(new_drug)
+                self.update_tables()
+                self.statusBar().showMessage(f"Created copy: {new_drug.name}")
+    
+    def import_from_save(self):
+        """Import drug recipes from a Schedule I game save"""
+        # Open the import save dialog
+        from import_save_dialog import ImportSaveDialog
+        dialog = ImportSaveDialog(self)
+        
+        if dialog.exec_():
+            save_path, save_name = dialog.get_selected_save()
+            if not save_path or not os.path.exists(save_path):
+                QMessageBox.warning(self, "Error", "Invalid save path selected.")
+                return
+                
+            # Look for drug recipes in the save file
+            try:
+                # First check for Products.json which contains the custom drug recipes
+                products_json_path = os.path.join(save_path, "Products.json")
+                if not os.path.exists(products_json_path):
+                    QMessageBox.warning(self, "Error", "Products.json not found in the selected save.")
+                    return
+                    
+                with open(products_json_path, 'r') as f:
+                    products_data = json.load(f)
+                
+                # Check if there are any discovered products
+                discovered_products = products_data.get("DiscoveredProducts", [])
+                if not discovered_products:
+                    QMessageBox.warning(self, "No Drugs Found", 
+                                    f"No discovered drugs found in the save file for {save_name}.")
+                    return
+                
+                # Get the mix recipes to trace ingredient chains
+                mix_recipes = products_data.get("MixRecipes", [])
+                
+                # Get product prices
+                product_prices = {}
+                for price_data in products_data.get("ProductPrices", []):
+                    product_id = price_data.get("String", "")
+                    price = price_data.get("Int", 0)
+                    if product_id and price:
+                        product_prices[product_id] = price
+                
+                # Get created drug data (for effects and names)
+                created_drugs = {}
+                
+                # Combine all created drug types
+                for drug in products_data.get("CreatedWeed", []):
+                    drug_id = drug.get("ID", "")
+                    if drug_id:
+                        created_drugs[drug_id] = drug
+                
+                for drug in products_data.get("CreatedMeth", []):
+                    drug_id = drug.get("ID", "")
+                    if drug_id:
+                        created_drugs[drug_id] = drug
+                        
+                for drug in products_data.get("CreatedCocaine", []):
+                    drug_id = drug.get("ID", "")
+                    if drug_id:
+                        created_drugs[drug_id] = drug
+                
+                # Create a dialog to let the user select which drug to import
+                select_dialog = QDialog(self)
+                select_dialog.setWindowTitle("Select Drugs to Import")
+                select_dialog.setMinimumWidth(400)
+                select_dialog.setMinimumHeight(500)
+                
+                layout = QVBoxLayout(select_dialog)
+                layout.addWidget(QLabel(f"Select drugs to import from {save_name}:"))
+                
+                # Create a list widget with checkboxes for each drug
+                drug_list = QListWidget()
+                drug_list.setSelectionMode(QListWidget.MultiSelection)
+                
+                # Add discovered products to the list
+                for product_id in discovered_products:
+                    # Skip base ingredients that aren't actual drugs
+                    if product_id in ["cuke", "banana", "paracetamol", "donut", "viagra", "mouthwash", 
+                                     "flumedicine", "gasoline", "energydrink", "motoroil", "megabean", 
+                                     "chili", "battery", "iodine", "addy", "horsesemen"]:
+                        continue
+                        
+                    # Get the proper name from created drugs if available
+                    display_name = product_id.capitalize()
+                    if product_id in created_drugs:
+                        display_name = created_drugs[product_id].get("Name", display_name)
+                    
+                    # Get the price if available
+                    price = product_prices.get(product_id, 0)
+                    
+                    # Create the list item
+                    item = QListWidgetItem(f"{display_name} (${price})")
+                    item.setData(Qt.UserRole, product_id)
+                    item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                    item.setCheckState(Qt.Checked)  # Default to checked
+                    drug_list.addItem(item)
+                
+                layout.addWidget(drug_list)
+                
+                # Add buttons
+                button_layout = QHBoxLayout()
+                select_all_button = QPushButton("Select All")
+                deselect_all_button = QPushButton("Deselect All")
+                import_button = QPushButton("Import Selected")
+                cancel_button = QPushButton("Cancel")
+                
+                select_all_button.clicked.connect(lambda: self.select_all_items(drug_list, True))
+                deselect_all_button.clicked.connect(lambda: self.select_all_items(drug_list, False))
+                import_button.clicked.connect(select_dialog.accept)
+                cancel_button.clicked.connect(select_dialog.reject)
+                
+                button_layout.addWidget(select_all_button)
+                button_layout.addWidget(deselect_all_button)
+                button_layout.addWidget(import_button)
+                button_layout.addWidget(cancel_button)
+                
+                layout.addLayout(button_layout)
+                
+                # Show the dialog
+                if select_dialog.exec_():
+                    # Get the selected drugs
+                    selected_drugs = []
+                    for i in range(drug_list.count()):
+                        item = drug_list.item(i)
+                        if item.checkState() == Qt.Checked:
+                            selected_drugs.append(item.data(Qt.UserRole))
+                    
+                    if not selected_drugs:
+                        QMessageBox.warning(self, "No Drugs Selected", "No drugs were selected for import.")
+                        return
+                    
+                    # Import the selected drugs
+                    drugs_imported = 0
+                    for product_id in selected_drugs:
+                        # Get drug details
+                        drug_name = product_id.capitalize()
+                        drug_type = "OG Kush"  # Default type
+                        effects = []
+                        
+                        # Default drug category based on product_id
+                        drug_category = "Weed"  # Default for most drugs
+                        if product_id == "meth":
+                            drug_category = "Meth"
+                        elif product_id == "cocaine":
+                            drug_category = "Cocaine"
+                        
+                        # Get proper name and effects if available in created drugs
+                        if product_id in created_drugs:
+                            drug_data = created_drugs[product_id]
+                            drug_name = drug_data.get("Name", drug_name)
+                            
+                            # Determine drug category from numeric type
+                            drug_type_num = drug_data.get("DrugType", 0)
+                            if drug_type_num == 1:
+                                drug_category = "Meth"
+                            elif drug_type_num == 2:
+                                drug_category = "Cocaine"
+                            
+                            # Get effects
+                            for effect_id in drug_data.get("Properties", []):
+                                # Map effect ID to proper effect name in our database
+                                effect_name = self.map_effect_id_to_name(effect_id)
+                                
+                                # Try to find this effect in our database
+                                effect = self.effect_database.get_effect(effect_name)
+                                if effect:
+                                    effects.append(effect)
+                                else:
+                                    # If not found, create a new effect with default values
+                                    effects.append(Effect(name=effect_name))
+                        
+                        # Get price
+                        base_price = float(product_prices.get(product_id, 0))
+                        
+                        # Check if this is a base drug (no recipe needed)
+                        base_drugs = ["ogkush", "sourdiesel", "greencrack", "granddaddypurple", "cocaine", "meth"]
+                        
+                        if product_id in base_drugs:
+                            # For base drugs, use empty ingredients list and map directly to drug type
+                            ingredients = []
+                            
+                            # Map base drug ID to proper drug type
+                            if product_id == "ogkush":
+                                mix_drug_type = "OG Kush"
+                                # Add base effect for OG Kush
+                                calming_effect = self.effect_database.get_effect("Calming")
+                                if calming_effect:
+                                    effects.append(calming_effect)
+                                else:
+                                    effects.append(Effect(name="Calming"))
+                            elif product_id == "sourdiesel":
+                                mix_drug_type = "Sour Diesel"
+                                # Add base effect for Sour Diesel
+                                refreshing_effect = self.effect_database.get_effect("Refreshing")
+                                if refreshing_effect:
+                                    effects.append(refreshing_effect)
+                                else:
+                                    effects.append(Effect(name="Refreshing"))
+                            elif product_id == "greencrack":
+                                mix_drug_type = "Green Crack"
+                                # Add base effect for Green Crack
+                                energizing_effect = self.effect_database.get_effect("Energizing")
+                                if energizing_effect:
+                                    effects.append(energizing_effect)
+                                else:
+                                    effects.append(Effect(name="Energizing"))
+                            elif product_id == "granddaddypurple":
+                                mix_drug_type = "Grandaddy Purple"
+                                # Add base effect for Grandaddy Purple
+                                sedating_effect = self.effect_database.get_effect("Sedating")
+                                if sedating_effect:
+                                    effects.append(sedating_effect)
+                                else:
+                                    effects.append(Effect(name="Sedating"))
+                            elif product_id == "cocaine":
+                                mix_drug_type = "Cocaine"
+                                # Cocaine has no base effects
+                            elif product_id == "meth":
+                                mix_drug_type = "Meth"
+                                # Meth has no base effects
+                            else:
+                                mix_drug_type = product_id.capitalize()
+                        else:
+                            # For mixed drugs, trace the recipe chain
+                            ingredients, mix_drug_type = self.trace_recipe_chain(product_id, mix_recipes, discovered_products)
+                        
+                        # Use the drug category (Weed, Meth, Cocaine) to determine the final drug type
+                        final_drug_type = mix_drug_type
+                        if drug_category == "Meth":
+                            final_drug_type = "Meth"
+                        elif drug_category == "Cocaine":
+                            final_drug_type = "Cocaine"
+                        
+                        # Create the drug object
+                        drug = Drug(
+                            name=drug_name,
+                            base_price=base_price,
+                            ingredients=ingredients,
+                            effects=effects,
+                            drug_type=final_drug_type,
+                            favorite=False
+                        )
+                        
+                        # Add to our database
+                        self.drug_database.add_drug(drug)
+                        drugs_imported += 1
+                    
+                    # Update the UI
+                    self.update_tables()
+                    
+                    if drugs_imported > 0:
+                        QMessageBox.information(self, "Import Successful", 
+                                            f"Successfully imported {drugs_imported} drug recipes from {save_name}.")
+                    else:
+                        QMessageBox.warning(self, "No Drugs Imported", 
+                                            f"No valid drug recipes found in the save file for {save_name}.")
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Import Error", 
+                                    f"An error occurred while importing drugs from the save file:\n{str(e)}")
+    
+    def select_all_items(self, list_widget, checked):
+        """Select or deselect all items in a list widget"""
+        for i in range(list_widget.count()):
+            item = list_widget.item(i)
+            item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
+            
+    def map_effect_id_to_name(self, effect_id):
+        """Map effect IDs from game save to our effect database names"""
+        # Special case mappings
+        effect_map = {
+            "brighteyed": "Bright-Eyed",
+            "caloriedense": "Calorie-Dense",
+            "antigravity": "Anti-Gravity",
+            "longfaced": "Long Faced",
+            "seizureinducing": "Seizure-Inducing",
+            "thoughtprovoking": "Thought-Provoking",
+            "tropicthunder": "Tropic Thunder",
+            "glowie": "Glowing"
+        }
+        
+        # Check if this effect ID has a special mapping
+        if effect_id.lower() in effect_map:
+            return effect_map[effect_id.lower()]
+        
+        # Default: just capitalize the first letter
+        return effect_id.capitalize()
+            
+    def trace_recipe_chain(self, product_id, mix_recipes, discovered_products=None):
+        """Trace the recipe chain to get all ingredients for a product
+        Returns a tuple of (ingredients, drug_type)
+        """
+        # If discovered_products is not provided, use a default list
+        if discovered_products is None:
+            discovered_products = ["ogkush", "sourdiesel", "greencrack", "granddaddypurple", 
+                                  "meth", "cocaine"]
+        
+        # Find the original weed strain used in the recipe chain
+        original_strain = self.find_original_strain(product_id, mix_recipes)
+        
+        # If we couldn't find an original strain, use a default
+        if not original_strain:
+            original_strain = "ogkush"  # Default to OG Kush
+        
+        # Build a complete recipe tree for this product
+        recipe_tree = {}
+        self.build_recipe_tree(product_id, mix_recipes, discovered_products, recipe_tree, set())
+        
+        # Extract ingredients in the correct order (bottom to top)
+        ingredient_ids = self.flatten_recipe_tree(recipe_tree)
+        
+        # Process the ingredients in the correct order from bottom to top in the JSON
+        ingredients = []
+        for ingredient_id in ingredient_ids:
+            # Simply capitalize the first letter of the ingredient ID for the name
+            ingredient_name = ingredient_id.capitalize()
+            
+            # Get the ingredient from our database if it exists
+            ingredient = self.ingredient_database.get_ingredient(ingredient_name)
+            if ingredient:
+                # Create a copy with quantity 1
+                ingredients.append(Ingredient(
+                    name=ingredient.name,
+                    quantity=1.0,
+                    unit_price=ingredient.unit_price
+                ))
+            else:
+                # If not found, create a default ingredient with the capitalized name
+                ingredients.append(Ingredient(
+                    name=ingredient_name,
+                    quantity=1.0,
+                    unit_price=5.0  # Default price
+                ))
+        
+        # Map original strain to proper drug type
+        drug_type = "OG Kush"  # Default type
+        if original_strain:
+            if original_strain == "ogkush":
+                drug_type = "OG Kush"
+            elif original_strain == "sourdiesel":
+                drug_type = "Sour Diesel"
+            elif original_strain == "greencrack":
+                drug_type = "Green Crack"
+            elif original_strain == "granddaddypurple":
+                drug_type = "Grandaddy Purple"
+            elif original_strain == "cocaine":
+                drug_type = "Cocaine"
+            elif original_strain == "meth":
+                drug_type = "Meth"
+        
+        return ingredients, drug_type
+        
+    def build_recipe_tree(self, product_id, mix_recipes, drugs, recipe_tree, visited):
+        """Build a complete recipe tree for a product
+        This preserves the hierarchy of ingredients in the recipe chain
+        """
+        # Prevent infinite recursion
+        if product_id in visited:
+            return
+            
+        visited.add(product_id)
+        
+        # Find the recipe that produces this product
+        for recipe in mix_recipes:
+            if recipe.get("Output") == product_id:
+                # Get the ingredients (product and mixer)
+                product = recipe.get("Product")
+                mixer = recipe.get("Mixer")
+                
+                # Initialize this node in the recipe tree
+                recipe_tree[product_id] = {"ingredients": []}
+                
+                # Process the product ingredient
+                if product:
+                    # If it's a drug (intermediate product), recursively build its recipe tree
+                    if product in drugs:
+                        self.build_recipe_tree(product, mix_recipes, drugs, recipe_tree, visited)
+                        recipe_tree[product_id]["product"] = product
+                    # If it's a base ingredient, add it directly
+                    else:
+                        recipe_tree[product_id]["ingredients"].append(product)
+                
+                # Process the mixer ingredient
+                if mixer:
+                    # If it's a drug (intermediate product), recursively build its recipe tree
+                    if mixer in drugs:
+                        self.build_recipe_tree(mixer, mix_recipes, drugs, recipe_tree, visited)
+                        recipe_tree[product_id]["mixer"] = mixer
+                    # If it's a base ingredient, add it directly
+                    else:
+                        recipe_tree[product_id]["ingredients"].append(mixer)
+                
+                break
+    
+    def flatten_recipe_tree(self, recipe_tree):
+        """Flatten the recipe tree into a list of ingredients in the correct order
+        This ensures ingredients are ordered from bottom to top in the recipe chain
+        """
+        # Start with an empty list
+        ingredient_list = []
+        
+        # Process the recipe tree recursively
+        self._flatten_node(recipe_tree, ingredient_list, set())
+        
+        return ingredient_list
+    
+    def _flatten_node(self, recipe_tree, ingredient_list, visited, node_id=None):
+        """Helper function to recursively flatten the recipe tree
+        """
+        # If no node_id is provided, process all nodes
+        if node_id is None:
+            for node_id in recipe_tree:
+                if node_id not in visited:
+                    self._flatten_node(recipe_tree, ingredient_list, visited, node_id)
+            return
+        
+        # Prevent processing the same node twice
+        if node_id in visited:
+            return
+            
+        visited.add(node_id)
+        
+        # Get the node data
+        node = recipe_tree.get(node_id, {})
+        
+        # First process any product ingredient (which should come first in bottom-to-top order)
+        if "product" in node:
+            self._flatten_node(recipe_tree, ingredient_list, visited, node["product"])
+        
+        # Then process any mixer ingredient
+        if "mixer" in node:
+            self._flatten_node(recipe_tree, ingredient_list, visited, node["mixer"])
+        
+        # Finally add any direct ingredients from this node
+        for ingredient in node.get("ingredients", []):
+            if ingredient not in ingredient_list:
+                ingredient_list.append(ingredient)
+    
+    def trace_ingredients_backwards(self, product_id, mix_recipes, drugs, ingredient_ids, visited):
+        """Trace the recipe chain backwards to get ingredients in the correct order
+        This method works by starting from the final product and working backwards through the recipe chain
+        """
+        # Prevent infinite recursion
+        if product_id in visited:
+            return
+            
+        visited.add(product_id)
+        
+        # Find the recipe that produces this product
+        recipe_found = False
+        for recipe in mix_recipes:
+            if recipe.get("Output") == product_id:
+                recipe_found = True
+                # Get the ingredients (product and mixer)
+                product = recipe.get("Product")
+                mixer = recipe.get("Mixer")
+                
+                # We need to process ingredients in reverse order to get bottom-to-top ordering
+                # First trace back through the mixer ingredient (processed second, so appears later in the list)
+                if mixer:
+                    # If it's a drug, recursively trace its recipe
+                    if mixer in drugs:
+                        self.trace_ingredients_backwards(mixer, mix_recipes, drugs, ingredient_ids, visited)
+                    # If it's a base ingredient, add it to the order
+                    elif mixer not in ingredient_ids:
+                        ingredient_ids.append(mixer)
+                
+                # Then trace back through the product ingredient (processed first, so appears earlier in the list)
+                if product:
+                    # If it's a drug, recursively trace its recipe
+                    if product in drugs:
+                        self.trace_ingredients_backwards(product, mix_recipes, drugs, ingredient_ids, visited)
+                    # If it's a base ingredient, add it to the order
+                    elif product not in ingredient_ids:
+                        ingredient_ids.append(product)
+                
+                break
+    
+    def find_original_strain(self, product_id, mix_recipes, visited=None):
+        """Find the original weed strain used in a recipe chain
+        This recursively traces back through the mix recipes to find the original strain
+        """
+        if visited is None:
+            visited = set()
+            
+        # Prevent infinite recursion
+        if product_id in visited:
+            return None
+            
+        visited.add(product_id)
+        
+        # Base case: if this is one of the original strains, return it
+        if product_id in ["ogkush", "sourdiesel", "greencrack", "granddaddypurple", "cocaine", "meth"]:
+            return product_id
+            
+        # Find the recipe that produces this product
+        for recipe in mix_recipes:
+            if recipe.get("Output") == product_id:
+                # Check the mixer first (usually the drug)
+                mixer = recipe.get("Mixer")
+                if mixer:
+                    # If the mixer is an original strain, return it
+                    if mixer in ["ogkush", "sourdiesel", "greencrack", "granddaddypurple", "cocaine", "meth"]:
+                        return mixer
+                    # Otherwise, recursively check the mixer
+                    strain = self.find_original_strain(mixer, mix_recipes, visited)
+                    if strain:
+                        return strain
+                        
+                # Check the product ingredient
+                product = recipe.get("Product")
+                if product:
+                    # If the product is an original strain, return it
+                    if product in ["ogkush", "sourdiesel", "greencrack", "granddaddypurple", "cocaine", "meth"]:
+                        return product
+                    # Otherwise, recursively check the product
+                    strain = self.find_original_strain(product, mix_recipes, visited)
+                    if strain:
+                        return strain
+                        
+        # If we couldn't find an original strain, return None
+        return None
+
     
     def delete_drug(self):
         """Delete the selected drug"""
@@ -1226,20 +1775,30 @@ class MainWindow(QMainWindow):
             details = f"<h2>{drug.name}</h2>"
             details += f"<p><b>Drug Type:</b> {drug.drug_type}</p>"
             details += f"<p><b>Base Price:</b> ${drug.base_price:.2f}</p>"
-            details += f"<p><b>Recommended Price:</b> ${(drug.base_price * 1.6):.2f}</p>"
-            details += f"<p><b>Ingredient Cost:</b> ${drug.ingredient_cost:.2f}</p>"
-            details += f"<p><b>Profit:</b> ${(drug.base_price - drug.ingredient_cost):.2f}</p>"
-            details += f"<p><b>Profit Margin:</b> {drug.profit_margin:.1f}%</p>"
             
-            if drug.notes:
-                details += f"<p><b>Notes:</b> {drug.notes}</p>"
+            # Calculate recommended price (base price + 60% profit)
+            recommended_price = drug.base_price * 1.6
+            details += f"<p><b>Recommended Price:</b> ${recommended_price:.2f}</p>"
             
-            # Ingredients
+            # Calculate ingredient cost
+            ingredient_cost = sum(ing.quantity * ing.unit_price for ing in drug.ingredients)
+            details += f"<p><b>Ingredient Cost:</b> ${ingredient_cost:.2f}</p>"
+            
+            # Calculate profit
+            profit = drug.base_price - ingredient_cost
+            details += f"<p><b>Profit:</b> ${profit:.2f}</p>"
+            
+            # Calculate profit margin
+            if ingredient_cost > 0:
+                profit_margin = (profit / ingredient_cost) * 100
+                details += f"<p><b>Profit Margin:</b> {profit_margin:.1f}%</p>"
+            
+            # Ingredients with numbered list instead of bullet points
             details += "<h3>Ingredients:</h3>"
-            details += "<ul>"
-            for ing in drug.ingredients:
-                details += f"<li>{ing.name}: {ing.quantity} units at ${ing.unit_price:.2f} each = ${ing.total_cost:.2f}</li>"
-            details += "</ul>"
+            details += "<ol>"
+            for ingredient in drug.ingredients:
+                details += f"<li>{ingredient.name}: {ingredient.quantity} units at ${ingredient.unit_price:.2f} each = ${ingredient.quantity * ingredient.unit_price:.2f}</li>"
+            details += "</ol>"
             
             # Effects
             details += "<h3>Effects:</h3>"
