@@ -1083,6 +1083,9 @@ class MainWindow(QMainWindow):
                 # Get the mix recipes to trace ingredient chains
                 mix_recipes = products_data.get("MixRecipes", [])
                 
+                # Get favorited products
+                favorited_products = products_data.get("FavouritedProducts", [])
+                
                 # Get product prices
                 product_prices = {}
                 for price_data in products_data.get("ProductPrices", []):
@@ -1282,6 +1285,9 @@ class MainWindow(QMainWindow):
                         elif drug_category == "Cocaine":
                             final_drug_type = "Cocaine"
                         
+                        # Check if this product is favorited
+                        is_favorited = product_id in favorited_products
+                        
                         # Create the drug object
                         drug = Drug(
                             name=drug_name,
@@ -1289,7 +1295,7 @@ class MainWindow(QMainWindow):
                             ingredients=ingredients,
                             effects=effects,
                             drug_type=final_drug_type,
-                            favorite=False
+                            favorite=is_favorited
                         )
                         
                         # Add to our database
