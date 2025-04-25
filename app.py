@@ -1368,8 +1368,7 @@ class MainWindow(QMainWindow):
         # If discovered_products is not provided, use a default list
         if discovered_products is None:
             discovered_products = ["ogkush", "sourdiesel", "greencrack", "granddaddypurple", 
-                                  "californiacookies", "islandcrystal", "meth", "cocaine", 
-                                  "thickmonkey", "strawberrypuke"]
+                                   "meth", "cocaine"]
         
         # Check if this is a base drug (no recipe needed)
         base_drugs = ["ogkush", "sourdiesel", "greencrack", "granddaddypurple", "cocaine", "meth"]
