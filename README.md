@@ -42,6 +42,11 @@ A comprehensive tool for the game "Schedule 1" that helps players manage drug re
 4. Add effects that apply to your drug
 5. The application will automatically calculate costs and profit margins
 
+### Importing Drugs
+1. Click "Import drugs from save" on the Drugs tab
+2. Choose your save file
+3. Select which drugs you want to import and hit "Import"
+
 ### Using the Online Database
 
 1. Go to the "Online Database" tab
