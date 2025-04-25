@@ -1342,6 +1342,24 @@ class MainWindow(QMainWindow):
         
         # Default: just capitalize the first letter
         return effect_id.capitalize()
+        
+    def map_base_drug_to_type(self, drug_id):
+        """Map base drug IDs to their proper drug types"""
+        if drug_id == "ogkush":
+            return "OG Kush"
+        elif drug_id == "sourdiesel":
+            return "Sour Diesel"
+        elif drug_id == "greencrack":
+            return "Green Crack"
+        elif drug_id == "granddaddypurple":
+            return "Grandaddy Purple"
+        elif drug_id == "cocaine":
+            return "Cocaine"
+        elif drug_id == "meth":
+            return "Meth"
+        else:
+            # Default: just capitalize the first letter
+            return drug_id.capitalize()
             
     def trace_recipe_chain(self, product_id, mix_recipes, discovered_products=None):
         """Trace the recipe chain to get all ingredients for a product
@@ -1350,7 +1368,15 @@ class MainWindow(QMainWindow):
         # If discovered_products is not provided, use a default list
         if discovered_products is None:
             discovered_products = ["ogkush", "sourdiesel", "greencrack", "granddaddypurple", 
-                                  "meth", "cocaine"]
+                                  "californiacookies", "islandcrystal", "meth", "cocaine", 
+                                  "thickmonkey", "strawberrypuke"]
+        
+        # Check if this is a base drug (no recipe needed)
+        base_drugs = ["ogkush", "sourdiesel", "greencrack", "granddaddypurple", "cocaine", "meth"]
+        if product_id in base_drugs:
+            # For base drugs, return empty ingredients list and map directly to drug type
+            drug_type = self.map_base_drug_to_type(product_id)
+            return [], drug_type
         
         # Find the original weed strain used in the recipe chain
         original_strain = self.find_original_strain(product_id, mix_recipes)
@@ -1359,12 +1385,9 @@ class MainWindow(QMainWindow):
         if not original_strain:
             original_strain = "ogkush"  # Default to OG Kush
         
-        # Build a complete recipe tree for this product
-        recipe_tree = {}
-        self.build_recipe_tree(product_id, mix_recipes, discovered_products, recipe_tree, set())
-        
-        # Extract ingredients in the correct order (bottom to top)
-        ingredient_ids = self.flatten_recipe_tree(recipe_tree)
+        # Get all ingredients in the correct order (bottom to top)
+        ingredient_ids = []
+        self.trace_ingredients_backwards(product_id, mix_recipes, discovered_products, ingredient_ids, set())
         
         # Process the ingredients in the correct order from bottom to top in the JSON
         ingredients = []
@@ -1407,15 +1430,23 @@ class MainWindow(QMainWindow):
         
         return ingredients, drug_type
         
-    def build_recipe_tree(self, product_id, mix_recipes, drugs, recipe_tree, visited):
+    def build_recipe_tree(self, product_id, mix_recipes, drugs, recipe_tree, visited=None):
         """Build a complete recipe tree for a product
         This preserves the hierarchy of ingredients in the recipe chain
         """
+        # Initialize visited set if not provided
+        if visited is None:
+            visited = set()
+            
+        # Create a copy of visited to avoid modifying the original
+        # This allows the same ingredient to appear in different branches of the recipe tree
+        local_visited = visited.copy()
+        
         # Prevent infinite recursion
-        if product_id in visited:
+        if product_id in local_visited:
             return
             
-        visited.add(product_id)
+        local_visited.add(product_id)
         
         # Find the recipe that produces this product
         for recipe in mix_recipes:
@@ -1425,27 +1456,40 @@ class MainWindow(QMainWindow):
                 mixer = recipe.get("Mixer")
                 
                 # Initialize this node in the recipe tree
-                recipe_tree[product_id] = {"ingredients": []}
+                # Use a unique ID for each node to handle duplicate ingredients
+                node_id = f"{product_id}_{len(recipe_tree)}"
+                recipe_tree[node_id] = {
+                    "id": product_id,  # Store the actual product ID
+                    "ingredients": []
+                }
                 
                 # Process the product ingredient
                 if product:
                     # If it's a drug (intermediate product), recursively build its recipe tree
                     if product in drugs:
-                        self.build_recipe_tree(product, mix_recipes, drugs, recipe_tree, visited)
-                        recipe_tree[product_id]["product"] = product
+                        self.build_recipe_tree(product, mix_recipes, drugs, recipe_tree, local_visited)
+                        # Find the last node created for this product
+                        for key in reversed(list(recipe_tree.keys())):
+                            if recipe_tree[key].get("id") == product:
+                                recipe_tree[node_id]["product"] = key
+                                break
                     # If it's a base ingredient, add it directly
                     else:
-                        recipe_tree[product_id]["ingredients"].append(product)
+                        recipe_tree[node_id]["ingredients"].append(product)
                 
                 # Process the mixer ingredient
                 if mixer:
                     # If it's a drug (intermediate product), recursively build its recipe tree
                     if mixer in drugs:
-                        self.build_recipe_tree(mixer, mix_recipes, drugs, recipe_tree, visited)
-                        recipe_tree[product_id]["mixer"] = mixer
+                        self.build_recipe_tree(mixer, mix_recipes, drugs, recipe_tree, local_visited)
+                        # Find the last node created for this mixer
+                        for key in reversed(list(recipe_tree.keys())):
+                            if recipe_tree[key].get("id") == mixer:
+                                recipe_tree[node_id]["mixer"] = key
+                                break
                     # If it's a base ingredient, add it directly
                     else:
-                        recipe_tree[product_id]["ingredients"].append(mixer)
+                        recipe_tree[node_id]["ingredients"].append(mixer)
                 
                 break
     
@@ -1464,11 +1508,13 @@ class MainWindow(QMainWindow):
     def _flatten_node(self, recipe_tree, ingredient_list, visited, node_id=None):
         """Helper function to recursively flatten the recipe tree
         """
-        # If no node_id is provided, process all nodes
+        # If no node_id is provided, find the root node (the last one added)
         if node_id is None:
-            for node_id in recipe_tree:
-                if node_id not in visited:
-                    self._flatten_node(recipe_tree, ingredient_list, visited, node_id)
+            # Get the keys in reverse order (newest first)
+            keys = list(recipe_tree.keys())
+            if keys:
+                # Start with the last node added (the root of the tree)
+                self._flatten_node(recipe_tree, ingredient_list, visited, keys[-1])
             return
         
         # Prevent processing the same node twice
@@ -1489,47 +1535,58 @@ class MainWindow(QMainWindow):
             self._flatten_node(recipe_tree, ingredient_list, visited, node["mixer"])
         
         # Finally add any direct ingredients from this node
+        # Always add ingredients, even if they're duplicates
         for ingredient in node.get("ingredients", []):
-            if ingredient not in ingredient_list:
-                ingredient_list.append(ingredient)
+            ingredient_list.append(ingredient)
     
     def trace_ingredients_backwards(self, product_id, mix_recipes, drugs, ingredient_ids, visited):
         """Trace the recipe chain backwards to get ingredients in the correct order
         This method works by starting from the final product and working backwards through the recipe chain
         """
+        # Create a copy of visited to avoid modifying the original
+        # This allows the same ingredient to appear in different branches of the recipe chain
+        local_visited = visited.copy()
+        
         # Prevent infinite recursion
-        if product_id in visited:
+        if product_id in local_visited:
             return
             
-        visited.add(product_id)
+        local_visited.add(product_id)
         
         # Find the recipe that produces this product
-        recipe_found = False
         for recipe in mix_recipes:
             if recipe.get("Output") == product_id:
-                recipe_found = True
                 # Get the ingredients (product and mixer)
                 product = recipe.get("Product")
                 mixer = recipe.get("Mixer")
                 
-                # We need to process ingredients in reverse order to get bottom-to-top ordering
-                # First trace back through the mixer ingredient (processed second, so appears later in the list)
-                if mixer:
-                    # If it's a drug, recursively trace its recipe
-                    if mixer in drugs:
-                        self.trace_ingredients_backwards(mixer, mix_recipes, drugs, ingredient_ids, visited)
-                    # If it's a base ingredient, add it to the order
-                    elif mixer not in ingredient_ids:
-                        ingredient_ids.append(mixer)
+                # Create a temporary list to hold ingredients from this level
+                # This ensures we can insert them in the correct order
+                temp_ingredients = []
                 
-                # Then trace back through the product ingredient (processed first, so appears earlier in the list)
+                # Process the product ingredient first (this should come first in the final list)
                 if product:
                     # If it's a drug, recursively trace its recipe
                     if product in drugs:
-                        self.trace_ingredients_backwards(product, mix_recipes, drugs, ingredient_ids, visited)
-                    # If it's a base ingredient, add it to the order
-                    elif product not in ingredient_ids:
-                        ingredient_ids.append(product)
+                        self.trace_ingredients_backwards(product, mix_recipes, drugs, ingredient_ids, local_visited)
+                    # If it's a base ingredient, add it to our temporary list
+                    else:
+                        temp_ingredients.append(product)
+                
+                # Then process the mixer ingredient
+                if mixer:
+                    # If it's a drug, recursively trace its recipe
+                    if mixer in drugs:
+                        self.trace_ingredients_backwards(mixer, mix_recipes, drugs, ingredient_ids, local_visited)
+                    # If it's a base ingredient, add it to our temporary list
+                    else:
+                        temp_ingredients.append(mixer)
+                
+                # Now add the temporary ingredients to the main list in reverse order
+                # This ensures the mixer ingredient comes before the product ingredient
+                # which matches the order in the game's recipe system
+                for ingredient in reversed(temp_ingredients):
+                    ingredient_ids.append(ingredient)
                 
                 break
     
