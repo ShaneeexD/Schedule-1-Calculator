@@ -1329,11 +1329,11 @@ class MainWindow(QMainWindow):
             "brighteyed": "Bright-Eyed",
             "caloriedense": "Calorie-Dense",
             "antigravity": "Anti-Gravity",
-            "longfaced": "Long Faced",
-            "seizureinducing": "Seizure-Inducing",
+            "giraffying": "Long Faced",
+            "seizure": "Seizure-Inducing",
             "thoughtprovoking": "Thought-Provoking",
             "tropicthunder": "Tropic Thunder",
-            "glowie": "Glowing"
+            "glowie": "Glowing"  
         }
         
         # Check if this effect ID has a special mapping
