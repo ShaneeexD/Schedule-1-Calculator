@@ -56,8 +56,8 @@ firebase_credentials.py
 firebase_rules.json
 
 announcement_admin.py
-
-
+update_effect_details.py
+update_effect_names.py
 
 README.txt
 dist.zip
